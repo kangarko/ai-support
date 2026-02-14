@@ -1,0 +1,52 @@
+name: ChatControl
+description: "a Minecraft chat plugin for Spigot/Paper/BungeeCord/Velocity providing chat management, formatting, filtering, and moderation"
+repo: kangarko/ChatControl
+
+layout:
+  type: multi-module
+  modules:
+    - name: chatcontrol-bukkit
+      path: chatcontrol-bukkit/
+      description: "Main Bukkit/Spigot/Paper implementation (commands, listeners, settings, config files in src/main/resources/)"
+    - name: chatcontrol-core
+      path: chatcontrol-core/
+      description: "Shared core logic across platforms"
+    - name: chatcontrol-proxy-core
+      path: chatcontrol-proxy-core/
+      description: "Shared proxy logic"
+    - name: chatcontrol-bungeecord
+      path: chatcontrol-bungeecord/
+      description: "BungeeCord proxy implementation"
+    - name: chatcontrol-velocity
+      path: chatcontrol-velocity/
+      description: "Velocity proxy implementation"
+  package: org.mineacademy.chatcontrol
+
+writable_prefixes:
+  - chatcontrol-bukkit/src/main/
+  - chatcontrol-core/src/main/
+  - chatcontrol-proxy-core/src/main/
+  - chatcontrol-bungeecord/src/main/
+  - chatcontrol-velocity/src/main/
+
+key_files:
+  - chatcontrol-bukkit/src/main/resources/settings.yml
+  - chatcontrol-bukkit/src/main/resources/database.yml
+  - chatcontrol-bukkit/src/main/resources/proxy.yml
+
+purchase_links:
+  main:
+    name: "ChatControl (Bukkit/Spigot/Paper)"
+    url: "https://builtbybit.com/resources/chatcontrol-format-filter-chat.18217/"
+  addons:
+    - name: "BungeeControl (BungeeCord proxy add-on)"
+      url: "https://builtbybit.com/resources/bungeecontrol-cross-network-chat.24248/"
+    - name: "VelocityControl (Velocity proxy add-on)"
+      url: "https://builtbybit.com/resources/velocitycontrol-cross-network-chat.43226/"
+
+extra_rules: |
+  - When explaining proxy setup, say "install the VelocityControl/BungeeControl plugin" and link to the relevant add-on page from the Purchase Links section
+  - If someone asks where to get the plugin or proxy module, link them to the BuiltByBit pages listed above
+  - **Bukkit limitation:** Proxy sync requires at least one online player on the sending backend server to work. This is a Bukkit/Spigot platform limitation (plugin messaging channels only function when a player is connected). Always mention this when explaining proxy setup
+
+docs_url: "https://docs.mineacademy.org/chatcontrol/"

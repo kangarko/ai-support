@@ -1,0 +1,30 @@
+name: Winter
+description: "a Minecraft winter transformation plugin for Spigot/Paper that adds snow particles, terrain snow generation/melting, weather control, gift/dated/timed chests, and snowmen features"
+repo: kangarko/Winter-Src
+
+layout:
+  type: single-module
+  source_root: src/main/java/
+  resources_root: src/main/resources/
+  package: org.mineacademy.winter
+
+writable_prefixes:
+  - src/main/
+
+key_files:
+  - src/main/resources/settings.yml
+
+purchase_links:
+  main:
+    name: "Winter"
+    url: "https://builtbybit.com/resources/winter.3450/"
+
+extra_rules: |
+  - 3 chest types created by placing signs on chests: Gift ([Gift] sign), Dated ([Dated] sign with date range), Timed ([Timed] sign with cooldown timer)
+  - Terrain Snow_Generation places/melts snow blocks around players; this is separate from cosmetic Snow particles
+  - Psycho snowmen are aggressive snowmen that attack players; converted from normal snowmen or spawned via /winter psycho
+  - Monster-to-snowman transformation: chance-based conversion of spawned mobs (configurable entity types)
+  - Biome disguise requires ProtocolLib and only works on specific MC versions (1.7.10, 1.8.8, 1.11, 1.12, 1.16, 1.17)
+  - NOT compatible with Folia or Luminol
+
+docs_url: "https://docs.mineacademy.org/winter/"

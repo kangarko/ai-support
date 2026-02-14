@@ -1,0 +1,29 @@
+name: Boss
+description: "a Minecraft custom boss mob creation and management plugin for Spigot/Paper"
+repo: kangarko/Boss
+
+layout:
+  type: single-module
+  source_root: src/main/java/
+  resources_root: src/main/resources/
+  package: org.mineacademy.boss
+
+writable_prefixes:
+  - src/main/
+
+key_files:
+  - src/main/resources/settings.yml
+
+purchase_links:
+  main:
+    name: "Boss"
+    url: "https://builtbybit.com/resources/boss.21619/"
+
+extra_rules: |
+  - Boss config files for individual bosses are stored in the server's Boss/bosses/ folder at runtime, NOT in the source resources directory
+  - Each boss is a YAML file with sections: Type, Alias, Health, Attributes, Equipment, Drops, Skills, Commands
+  - The 17 built-in skills are: Arrow, Bomb, Confuse, Disarm, Enderman, Ignite, Fireball, Freeze, Lightning, Minions, Potions, StealLife, Teleport, Throw, Commands, Commands_Nearby, Commands_Target
+  - The 5 spawn rule types are: LOCATION_PERIOD, RESPAWN_AFTER_DEATH, REGION_ENTER, PERIOD, REPLACE_VANILLA
+  - Boss supports Citizens NPC integration and ModelEngine custom models
+
+docs_url: "https://docs.mineacademy.org/boss/"

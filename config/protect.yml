@@ -1,0 +1,33 @@
+name: Protect
+description: "an anti-cheat and anti-dupe Minecraft plugin for Spigot/Paper that scans inventories for illegal items, logs commands and shop transactions, and limits WorldEdit usage"
+repo: kangarko/Protect
+
+layout:
+  type: single-module
+  source_root: src/main/java/
+  resources_root: src/main/resources/
+  package: org.mineacademy.protect
+
+writable_prefixes:
+  - src/main/
+
+key_files:
+  - src/main/resources/settings.yml
+  - src/main/resources/database.yml
+  - src/main/resources/rules/main.rs
+  - src/main/resources/rules/group.rs
+
+purchase_links:
+  main:
+    name: "Protect"
+    url: "https://builtbybit.com/resources/protect.2733/"
+
+extra_rules: |
+  - Rule files (.rs) in the rules/ folder use: match <material>, name <id>, require/ignore/check/then operators
+  - Groups (.rs) define reusable operator sets referenced by "group <name>" in rules
+  - Material matching supports wildcards: "*_SWORD", "DIAMOND_*", "*" (all items)
+  - Scan triggers configurable in settings.yml: Player_Join, Player_Death, World_Change, Inventory_Open, Item_Use, Item_Spawn, Command, Periodic
+  - Database stores confiscated items, command spy logs, and shop transaction logs
+  - Supports 8 shop plugins for transaction logging: BlueShop, ChestShop, ExcellentShop, ShopGUI, Shop, SignShop, EconomyShopGUI, QuickShop
+
+docs_url: "https://docs.mineacademy.org/protect/"

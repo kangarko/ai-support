@@ -1,0 +1,31 @@
+name: CoreArena
+description: "a MobArena-style PvE minigame plugin for Spigot/Paper with arenas, phases, waves, classes, tiers, upgrades, experience, and rewards"
+repo: kangarko/CoreArena
+
+layout:
+  type: single-module
+  source_root: src/main/java/
+  resources_root: src/main/resources/
+  package: org.mineacademy.corearena
+
+writable_prefixes:
+  - src/main/
+
+key_files:
+  - src/main/resources/settings.yml
+
+purchase_links:
+  main:
+    name: "CoreArena"
+    url: "https://builtbybit.com/resources/corearena.21643/"
+
+extra_rules: |
+  - Arena configs are stored at runtime in the server's CoreArena/arenas/ folder, NOT in source resources
+  - Class configs are stored at runtime in CoreArena/classes/ folder
+  - The prototype/ folder in source resources contains TEMPLATE configs for arenas, classes, and upgrades that serve as defaults
+  - Arena lifecycle: STOPPED -> LOBBY (countdown) -> RUNNING (phases/waves) -> STOPPED
+  - 7 sign types: [arena], [class], [classes], [upgrade], [power], [leave], [rewards]
+  - Players choose classes in the lobby; class tiers unlock with experience
+  - Economy: Experience -> Levels -> Nuggets (conversion ratio configurable) -> Rewards/Upgrades
+
+docs_url: "https://docs.mineacademy.org/corearena/"
