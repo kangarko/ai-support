@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "channels",
+    "insight": "Channels support a `Party` config key to restrict messages to players in the same third-party plugin group. Available built-in values: `factions-faction`, `factions-ally`, `factions-enemy`, `factions-truce`, `towny-town`, `towny-nation`, `towny-ally`, `mcmmo-party`, `lands-land`, `parties-party`, `plotsquared-plot`, and `bentobox-island-{visitor,coop,trusted,member,subowner,owner,mod,admin}`. Custom parties can be registered via `Party.register()`.",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3372
   }
 ]
