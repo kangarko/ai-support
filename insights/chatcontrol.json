@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "In message files (join.rs, quit.rs, etc.), `delay` is a global cooldown shared across all players (no message fires for anyone until it elapses), while `player delay` is a per-player cooldown (only suppresses repeated messages from the same player). For preventing join/quit spam from a single player reconnecting due to lag, use `player delay 10 seconds` in the group \u2014 this silences that player's repeated messages without hiding other players' join/quit messages.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3433
   }
 ]
