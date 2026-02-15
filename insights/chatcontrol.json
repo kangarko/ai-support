@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "The `@prolong` annotation in rule replacements (`then replace @prolong *`) duplicates a character to match the length of the matched text. It supports group-specific length matching with `@prolong:N` syntax (e.g., `@prolong:1 *` matches group 1's length). Implementation is in Foundation's `RuleTextReplacer.replaceWithProlong()`. If the group index is invalid or out of range, it silently falls back to the full match length (group 0).",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3429
   }
 ]
