@@ -92,6 +92,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: kangarko/foundation
+          ref: v7
           token: ${{ steps.app_token.outputs.token }}
           path: foundation
 
@@ -244,6 +245,7 @@ jobs:
             PR_URL=$(gh pr create \
               --repo kangarko/foundation \
               --draft \
+              --base v7 \
               --title "Fix ${SOURCE_REPO}#${ISSUE_NUM}: ${ISSUE_TITLE}" \
               --body-file ../pr_description_foundation.md \
               --head "$BRANCH")
