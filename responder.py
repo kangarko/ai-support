@@ -43,6 +43,7 @@ ALLOWED_FETCH_DOMAINS = frozenset({
     "jitpack.io",
     "docs.oracle.com",
     "builtbybit.com",
+    "mineacademy.org", "docs.mineacademy.org",
 })
 
 EXCLUDED_BUILTIN_TOOLS = [
