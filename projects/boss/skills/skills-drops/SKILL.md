@@ -13,9 +13,9 @@ Skills are special abilities that Bosses periodically execute against nearby pla
 
 ### Key Classes (Skills)
 
-- `BossSkill` (skill/BossSkill.java): Abstract base class implementing `ConfigSerializable`. Holds: name, boss reference, delay (RangedSimpleTime), commands (List of BossCommand with type SKILL), messages (List of String, one picked randomly), stopMoreSkills (boolean). Abstract methods: `execute(LivingEntity boss)`, `getIcon()`, `getDefaultDelay()`, `getDefaultMessage()`. Optional overrides: `isCompatible()`, `canApplyTo(Boss)`, `getMenu(Menu)`, `readSettings(SerializedMap)`, `writeSettings()`. Skills are registered via `BossSkill.registerSkill(name, class)` and instantiated via `BossSkill.createInstance()`.
-- `AbstractTargetSkill` (skill/AbstractTargetSkill.java): Extends `BossSkill`. Wraps `execute()` to find the Boss's current target player using `EntityUtil.getTarget()`. Checks target is a Player, in the same world, within `Settings.Skills.TARGET_RANGE` blocks (default 8), and targetable. If the target skill succeeds, it also calls `executeSkillCommands()`.
-- `TaskBehavior` (task/TaskBehavior.java): The main tick task. Every second, iterates all alive Bosses, checks each Boss's skills. For each skill, checks if the randomized delay has elapsed, then calls `skill.execute()`. If `stopMoreSkills` is true on a skill and it succeeds, no further skills are checked for that Boss in that tick.
+- `BossSkill` (skill/BossSkill.java): Abstract base class implementing `ConfigSerializable`.
+- `AbstractTargetSkill` (skill/AbstractTargetSkill.java): Extends `BossSkill`.
+- `TaskBehavior` (task/TaskBehavior.java): The main tick task.
 
 ### 17 Built-in Skills
 
@@ -96,65 +96,6 @@ Skills:
 - **Stop_More_Skills**: If true (default), when this skill fires successfully, no further skills are checked for this Boss in the same tick. Set to false to allow multiple skills per tick.
 - **Settings**: Skill-specific configuration map. Varies by skill type (see each skill description above).
 
-## Drops Configuration
-
-Drops are configured in the `Drops` section of each Boss YAML.
-
-### Drop Types
-
-#### Vanilla Drops
-```yaml
-Drops:
-  Vanilla: true
-```
-If true, the Boss also drops whatever the vanilla entity type would normally drop. Set to false to disable vanilla drops entirely.
-
-#### General Drops
-```yaml
-Drops:
-  General:
-    - Key: diamond_sword{Enchantments:[{id:sharpness,lvl:5}]}
-      Value: 0.5
-    - Key: diamond
-      Value: 1.0
-    - Key: golden_apple
-      Value: 0.25
-```
-A list of Tuple(ItemStack, Double). The ItemStack is the item, and the Double is the drop chance (0.0-1.0). These items are dropped on the floor at the Boss's death location for anyone to pick up. Each item rolls independently.
-
-#### Player Drops (Top Damager Rewards)
-```yaml
-Drops:
-  Player:
-    - diamond_sword: 1.0
-      diamond_helmet: 0.5
-    - diamond: 1.0
-    - gold_ingot: 1.0
-```
-A list of maps (ItemStack to Double chance). The list is ordered by damage rank: index 0 = top damager, index 1 = second damager, etc. Items are given directly to the player's inventory (not dropped on floor). Each map entry is an item with its own drop chance. The damage ranking uses a time-filtered cache of all damage dealt to the Boss.
-
-#### Player Time Threshold
-```yaml
-Drops:
-  Player_Time_Threshold: "15 seconds"
-```
-How far back in time to account for player damage. Default: 15 seconds. Only damage dealt within this window before death counts toward the ranking. This prevents a player who hit the Boss once 10 minutes ago from claiming top rewards.
-
-#### Player Commands
-```yaml
-Drops:
-  Player_Commands:
-    - "give {player} diamond 1"
-    - "eco give {player} 100"
-```
-Console commands run for players in the top damager list. Each command runs for each qualifying player in order (top damager first). Support all Boss variables including `{player}`, `{boss_name}`, etc. The `Death.Run_PvP_Commands_As_Console` setting (settings.yml, default true) controls whether these run as console or as the player.
-
-### Dropped Experience
-```yaml
-Dropped_Exp: "10 - 50"
-```
-Ranged value for XP orbs dropped on death. Set to `default` or `-1` to use vanilla XP rules.
-
 ## Common Issues & Solutions
 
 - **Skills not firing**: Enable `Debug: [skills]` in settings.yml. Check that the skill delay has elapsed, the Boss has a valid target (for target-based skills), and the target is within `Settings.Skills.TARGET_RANGE` (default 8 blocks). Skills only fire when the Boss is alive in a loaded chunk.
@@ -176,19 +117,7 @@ Ranged value for XP orbs dropped on death. Set to `default` or `-1` to use vanil
 - `src/main/java/org/mineacademy/boss/skill/SkillDisarm.java` - Drop held item skill
 - `src/main/java/org/mineacademy/boss/skill/SkillEnderman.java` - Teleport-behind skill
 - `src/main/java/org/mineacademy/boss/skill/SkillIgnite.java` - Fire skill
-- `src/main/java/org/mineacademy/boss/skill/SkillFireball.java` - Fireball projectile skill
-- `src/main/java/org/mineacademy/boss/skill/SkillFreeze.java` - Freeze-in-place skill
-- `src/main/java/org/mineacademy/boss/skill/SkillLightning.java` - Lightning strike skill
-- `src/main/java/org/mineacademy/boss/skill/SkillMinions.java` - Spawn reinforcement Bosses
-- `src/main/java/org/mineacademy/boss/skill/SkillPotion.java` - Apply potion effects skill
-- `src/main/java/org/mineacademy/boss/skill/SkillStealLife.java` - Steal health skill
-- `src/main/java/org/mineacademy/boss/skill/SkillTeleport.java` - Teleport target skill
-- `src/main/java/org/mineacademy/boss/skill/SkillThrow.java` - Launch target into air skill
-- `src/main/java/org/mineacademy/boss/skill/SkillCommands.java` - Run console commands skill
-- `src/main/java/org/mineacademy/boss/skill/SkillCommandsNearby.java` - Commands for nearby players
-- `src/main/java/org/mineacademy/boss/skill/SkillCommandsTarget.java` - Commands for target player
-- `src/main/java/org/mineacademy/boss/BossPlugin.java` - Skill registration in onPluginLoad()
-- `src/main/java/org/mineacademy/boss/task/TaskBehavior.java` - Skill execution tick loop
-- `src/main/java/org/mineacademy/boss/task/TaskFrozenPlayers.java` - Freeze skill state management
-- `src/main/java/org/mineacademy/boss/listener/SkillListener.java` - Skill event handlers (arrow hit, etc.)
-- `src/main/java/org/mineacademy/boss/model/Boss.java` - Drop loading/saving (loadGeneralDrops, loadPlayerDrops, Drops section)
+
+## Reference
+
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

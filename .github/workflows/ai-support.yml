@@ -143,11 +143,13 @@ jobs:
           COMMENT_AUTHOR: ${{ inputs.comment_author }}
         run: python ai-support/responder.py
 
-      - name: Commit learned insights
+      - name: Propose learned insights via draft PR
         if: "!cancelled()"
         continue-on-error: true
         env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
           ISSUE_NUM: ${{ inputs.issue_number }}
+          SOURCE_REPO: ${{ github.repository }}
         run: |
           cd ai-support
           git add insights/ 2>/dev/null || exit 0
@@ -155,12 +157,21 @@ jobs:
             echo "No insight changes"
             exit 0
           fi
+          BRANCH="insights/${SOURCE_REPO##*/}-${ISSUE_NUM}"
           git config user.name "kangobot[bot]"
           git config user.email "2869176+kangobot[bot]@users.noreply.github.com"
-          git commit -m "Learn from ${{ github.repository }}#${ISSUE_NUM}"
-          git pull --rebase origin main 2>/dev/null || true
-          git push origin main
-          echo "Committed insights to ai-support"
+          git checkout -b "$BRANCH"
+          git commit -m "Learn from ${SOURCE_REPO}#${ISSUE_NUM}"
+          git push -f origin "$BRANCH"
+          EXISTING_PR=$(gh pr list --repo kangarko/ai-support --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null || true)
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --repo kangarko/ai-support \
+              --draft \
+              --title "Insights from ${SOURCE_REPO}#${ISSUE_NUM}" \
+              --body "Learned insights extracted from ${SOURCE_REPO}#${ISSUE_NUM}. Review before merging."
+          fi
+          echo "Proposed insights via draft PR"
 
       - name: Create fix PR if changes were proposed
         id: fix_pr

@@ -31,77 +31,6 @@ Channel/Command specifies Format name
   → Return final component
 ```
 
-## Configuration
-
-### Format File (`formats/*.yml`)
-
-Root keys:
-- `New_Line_Per_Part` (boolean) — insert newline between parts
-- `Parts` (map) — named format parts, processed top-to-bottom
-
-### Part Keys
-
-| Key | Type | Purpose |
-|-----|------|---------|
-| `Message` | String/List | **Required**. Text to display. Supports MiniMessage + `{variables}` |
-| `Sender_Permission` | String | Permission sender must have for this part to show |
-| `Sender_Condition` | String | JavaScript expression returning boolean (sender context) |
-| `Sender_Variable` | String | Variable equality check (e.g., `{var} value`) |
-| `Receiver_Permission` | String | Permission receiver must have to see this part |
-| `Receiver_Condition` | String | JavaScript expression per-receiver |
-| `Receiver_Variable` | String | Variable check per-receiver |
-| `Hover` | String/List | Tooltip text on hover |
-| `Hover_Item` | String | JavaScript returning ItemStack for hover |
-| `Open_Url` | String | URL to open on click |
-| `Suggest_Command` | String | Suggest command on click |
-| `Run_Command` | String | Execute command on click (**only 1 allowed** — MC limitation) |
-| `Insertion` | String | Shift+click insertion text |
-| `Copy_To_Clipboard` | String | Copy on click (MC 1.16+) |
-| `Gradient` | String | Color gradient: `COLOR - COLOR` (e.g., `RED - GOLD`) |
-| `Image_File` | String | Image from `images/` folder |
-| `Image_Head` | String | Player head as ASCII art |
-| `Image_Url` | String | Remote image URL |
-| `Image_Height` | Integer | Image height in lines (default 8) |
-| `Image_Type` | Enum | `BLOCK`, `DARK_SHADE`, etc. |
-
-### Color Permissions
-
-Colors are permission-gated in `settings.yml` under `Colors`:
-
-- `Colors.Apply_On` — list of contexts: `chat`, `book`, `sign`, `anvil`, `me`, `say`, `private_message`, `prefix`, `nick`, `suffix`
-- `chatcontrol.color.{name}` — allow specific `&` color or `<red>` MiniMessage tag
-- `chatcontrol.hexcolor.{hexcode}` — allow `<#CC11FF>` hex colors
-- `chatcontrol.action.{action}` — allow `<hover>`, `<click>`, `<insertion>`, `<rainbow>`, `<font>`
-- `chatcontrol.use.color.{type}` — per-context toggle (default: true)
-
-### Default Format Files
-
-| File | Used By | Description |
-|------|---------|-------------|
-| `chat.yml` | `standard` channel | Full format with delete button, VIP prefix, hover, click |
-| `global-chat.yml` | `global` channel | Simple `[channel] name: message` format |
-| `admin-chat.yml` | `admin` channel | Admin chat format |
-| `pm-sender.yml` | PM system | Private message sender view |
-| `pm-receiver.yml` | PM system | Private message receiver view |
-| `motd.yml` | MOTD | Message of the day |
-| `spy.yml` / `spy-*.yml` | Spy system | Various spy format overrides |
-| `helpop.yml` | Helpop | Help request format |
-
-## Common Variables in Formats
-
-- `{player_name}`, `{player_nick}` — username or nickname
-- `{player_prefix}`, `{player_suffix}` — from Vault
-- `{player_prefix+}` — prefix with auto-space (space only if prefix exists)
-- `{player_chat_color}`, `{player_chat_decoration}` — from `/chc color`
-- `{player_group}` — primary permission group
-- `{player_channel}` — current channel name
-- `{message}` — the chat message content
-- `{message_uuid}` — for message removal feature
-- `{date}` — current timestamp
-- `{sender_is_discord}` — true if from Discord
-- `{player_channel_mode_{channel}}` — read/write/none
-- `{player_is_spying_{channel}}` — spy status
-
 ## Common Issues & Solutions
 
 ### "Format part not showing"
@@ -132,10 +61,6 @@ Pre-1.13: max 21 characters per hover line. Use shorter text.
 - Colors class: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/Colors.java`
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Colors section)
 
-## Foundation Integration
+## Reference
 
-- `SimpleComponent` — Foundation's component builder, used by `Format.build()`
-- `Variables` — Foundation's placeholder replacement system
-- `ChatImage` — Foundation's ASCII art image renderer
-- `JavaScriptExecutor` — evaluates `Sender_Condition` / `Receiver_Condition`
-- `CompChatColor` — Foundation's cross-version color abstraction
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

@@ -13,16 +13,16 @@ Winter provides three layered systems for winter effects: visual snow particles 
 
 ### Key Classes
 
-- `TaskParticleSnow` -- Repeating task that spawns FIREWORKS_SPARK particles around each online player. Runs every `Snow.Period_Ticks` ticks. Contains an inner `ParticleLimiter` class that checks server TPS every 20 seconds and reduces particle count to 8 when TPS drops below 17.
-- `TaskTerrain` -- Repeating task that places or removes snow blocks in chunks near players. Runs every `Terrain.Snow_Generation.Period_Ticks` ticks. Loads chunks within the configured radius of each player, picks random non-snow locations in each chunk, and either places snow layers or melts existing ones depending on the `Melt` flag. Handles multi-layer snow growth using neighbor checks, crop destruction, water freezing, and snow-block conversion.
+- `TaskParticleSnow` -- Repeating task that spawns FIREWORKS_SPARK particles around each online player.
+- `TaskTerrain` -- Repeating task that places or removes snow blocks in chunks near players.
 - `TaskWeather` -- Repeating task (every 3 seconds) that either disables weather entirely or tracks thunderstorms for the snow storm effect via `SnowStorm` model.
-- `SnowStorm` -- Static set tracking which worlds currently have a thunderstorm active. When a world is storming, `TaskParticleSnow` sets particle speed to 1 (chaotic movement) instead of the configured `Chaos` value.
-- `ProtocolLibBiomeHook` -- Intercepts MAP_CHUNK packets via ProtocolLib and rewrites biome data to the configured cold biome ID. Has version-specific remapper classes: `Remapper1_8_8`, `REmapper1_7_10`, `REmapper1_11_and_12`, `REmapper1_13_to_1_17`.
+- `SnowStorm` -- Static set tracking which worlds currently have a thunderstorm active.
+- `ProtocolLibBiomeHook` -- Intercepts MAP_CHUNK packets via ProtocolLib and rewrites biome data to the configured cold biome ID.
 - `MeltingListener` -- Cancels `BlockFadeEvent` for materials listed in `Terrain.Prevent_Melting`.
-- `WinterListener` -- Cancels `WeatherChangeEvent` when `Weather.Disable` is true. Also handles `RegionScanCompleteEvent` for the populate command.
+- `WinterListener` -- Cancels `WeatherChangeEvent` when `Weather.Disable` is true.
 - `WinterUtil` -- Utility methods: `canMelt()` checks if a location's biome is naturally snowy (respects `Only_Melt_Unnatural_Snow`), `canPlace()` validates a ground block against `Do_Not_Place_On`, `isInRegion()` checks WorldGuard regions via `Whiteblacklist`, `nextLocationNoSnow()` picks a random non-snow location in a chunk.
 - `FreezeIgnore` -- Model that prevents water freezing near certain neighbor block + crop combinations.
-- `PlayerData` -- Stores per-player snow toggle state in `Snow_Disabled` list in data.yml. `hasSnowEnabled()` returns true unless the player's UUID is in the disabled set.
+- `PlayerData` -- Stores per-player snow toggle state in `Snow_Disabled` list in data.yml.
 
 ### Task Registration (WinterPlugin.onPluginStart)
 
@@ -49,85 +49,6 @@ Winter provides three layered systems for winter effects: visual snow particles 
 5. If `Melt` is true: reduce snow layers, respecting `Only_Melt_Unnatural_Snow` (skips naturally snowy biomes and Y>90 mountain biomes). Convert ice back to water if `Freeze_Water` is true. Optionally convert snow blocks to 7-layer snow first if `Melt_Snow_Block_To_Snow_Layer` is true.
 6. `Destroy_Crops`: if the block two below is farmland, place snow and convert farmland to dirt.
 7. `Freeze_Water`: freeze water to ice (or thaw ice to water when melting), respecting `Freeze_Ignore` rules that prevent freezing near certain neighbor blocks with specific crops.
-
-## Configuration
-
-All settings are in `settings.yml`.
-
-### Snow (Particles)
-
-```yaml
-Snow:
-  Enabled: true                   # Master toggle for snow particles
-  Period_Ticks: 3                 # Spawn interval (20 ticks = 1 second), lower = more frequent
-  Amount: 40                      # Particles per player per tick cycle
-  Chaos: 0.0                      # Random bounce intensity, 0.8 for storm-like effect
-  Realistic: true                 # Only spawn in open sky (not under roofs)
-  Require_Snow_Biomes: false      # Restrict to cold/ice/frozen biomes and high altitude
-  Ignore_Vanished: true           # Skip vanished and spectator players
-  Range:
-    Horizontal: 15                # X-Z radius in blocks
-    Vertical: 15                  # Y radius in blocks
-  Regions:
-    Enabled: false                # Enable WorldGuard region filtering
-    List: []                      # Whitelist by default, prefix @blacklist to invert
-```
-
-### Terrain.Snow_Generation
-
-```yaml
-Terrain:
-  Prevent_Melting: [ICE, SNOW_BLOCK, SNOW]   # Cancel BlockFadeEvent for these materials
-
-  Snow_Generation:                             # DOES NOT SUPPORT /WINTER RELOAD
-    Enabled: false                             # Place/remove snow blocks around players
-    Melt: false                                # Reverse mode: remove snow instead of placing
-    Only_Melt_Unnatural_Snow: true             # Skip naturally snowy biomes when melting
-    Melt_Snow_Block_To_Snow_Layer: false        # Convert snow blocks to layers before melting
-    Freeze_Water: true                         # Convert water to ice (or ice to water when melting)
-    Destroy_Crops: false                       # Place snow on farmland, destroying crops
-    Freeze_Ignore:                             # Prevent freezing near specific neighbor+crop combos
-      "SAND, GRASS, DIRT": "SUGAR_CANE, SUGAR_CANE_BLOCK"
-      "SAND": "CACTUS"
-      "SOIL": "*"
-    Period_Ticks: 40                           # How often to scan for blocks (20 ticks = 1 second)
-    Radius: 3                                  # Chunk radius around each player (approx. radius*15 blocks)
-    Multi_Layer: true                          # Allow snow to stack multiple layers
-    Required_Neighbors_To_Grow: 2              # Side blocks at same level needed for layer growth
-    Convert_Full_Snow_To_Snow_Block: false     # Convert 8-layer snow to snow block
-    Max_Snow_Layers_Height: 3                  # Max snow layers (1 block = 8 layers)
-    Do_Not_Place_On: [AIR, ANVIL, TABLE, ...]  # Material substrings to exclude
-    Ignore_Biomes: []                          # Biome names to skip
-    Regions:
-      Enabled: false                           # Enable WorldGuard region filtering
-      List: []                                 # Whitelist by default, prefix @blacklist to invert
-```
-
-### Terrain.Disguise_Biomes
-
-```yaml
-Terrain:
-  Disguise_Biomes:
-    Enabled: false                # Disguise all biomes as a cold biome (client-side only)
-    Biome: ICE_MOUNTAINS          # Target biome name
-```
-
-Requires ProtocolLib. Only works on MC 1.7.10, 1.8.8, 1.11, 1.12, 1.16, and 1.17. Does not modify the actual world -- purely packet-level visual change.
-
-### Weather
-
-```yaml
-Weather:
-  Disable: false      # Completely prevent rain/thunderstorm (disables Snow_Storm)
-  Snow_Storm: true    # Make particles chaotic during thunderstorms
-```
-
-### Worlds
-
-```yaml
-Worlds:
-  - '*'               # List of enabled worlds, or '*' for all
-```
 
 ## Common Issues & Solutions
 
@@ -156,8 +77,7 @@ Worlds:
 - Biome hook: `src/main/java/org/mineacademy/winter/hook/ProtocolLibBiomeHook.java`
 - Melting listener: `src/main/java/org/mineacademy/winter/listener/MeltingListener.java`
 - Weather listener: `src/main/java/org/mineacademy/winter/listener/WinterListener.java`
-- Snow storm model: `src/main/java/org/mineacademy/winter/model/SnowStorm.java`
-- Freeze ignore model: `src/main/java/org/mineacademy/winter/model/FreezeIgnore.java`
-- Utility: `src/main/java/org/mineacademy/winter/util/WinterUtil.java`
-- Player data (snow toggle): `src/main/java/org/mineacademy/winter/model/PlayerData.java`
-- Plugin bootstrap: `src/main/java/org/mineacademy/winter/WinterPlugin.java`
+
+## Reference
+
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

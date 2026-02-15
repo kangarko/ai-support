@@ -14,15 +14,15 @@ Winter provides three types of special chests created by placing signs on regula
 ### Key Classes
 
 - `ChestMatcher` -- Interface defining three methods: `isValidFormat(String[] lines)` for sign format validation, `getValidFormatExample()` for error messages, and `getPermission()` for the required permission node.
-- `WinterChest` -- Interface extending `ChestMatcher`. Adds `getSign()`, `getChest()`, and `isOwner(Player)` which checks the sign's owner in `ChestData`.
-- `GiftChest` -- Implements `WinterChest`. Can be public (empty sign lines, accessible to everyone) or private (player names on lines 2-4, accessible only to named receivers). Public chests require `Gift_Chest.Public.Allow: true`. The `canAccess(Player)` method does case-insensitive name matching against receivers.
-- `InfiniteChest` -- Abstract class implementing `WinterChest`. Base for Dated and Timed chests. Provides `onTryOpen(Player)` which checks `canOpen()`, tracks interaction via `PlayerData.onInteract()`, opens a read-only `InventoryDrawer` with the chest's contents, handles preview mode for Dated chests (first open is preview with dragon sound, second open is loot with level-up sound). Contains static `parseDate()` and `parseHour()` utilities.
-- `DatedChest` -- Extends `InfiniteChest`. Uses `RangedValue` for day and optional hour ranges. `canOpen()` checks: player has not exceeded use limit (2 with preview, 1 without), current date is in range, current time is in hour range (if specified). Date format: `DD.MM` or `DD.MM-DD.MM` on sign line 2, optional `HH:MM` or `HH:MM-HH:MM` on sign line 3. Uses `Dated_Chest.Default_Year` for year when not specified. Year overlap supported (e.g. 25.12-03.01 wraps by adding 365 days to the end date).
-- `TimedChest` -- Extends `InfiniteChest`. Uses a cooldown delay in seconds and an optional max use count. `canOpen()` checks: player has not exceeded max uses (if set), and enough time has passed since last interaction. Time format: `24h`, `40m`, `10s`, etc. on sign line 2, optional max uses integer on sign line 3.
+- `WinterChest` -- Interface extending `ChestMatcher`.
+- `GiftChest` -- Implements `WinterChest`.
+- `InfiniteChest` -- Abstract class implementing `WinterChest`.
+- `DatedChest` -- Extends `InfiniteChest`.
+- `TimedChest` -- Extends `InfiniteChest`.
 - `ChestListener` -- Main listener handling four events: `SignChangeEvent` (validates and registers new Winter signs), `PlayerInteractEvent` (opens chests on right-click, checks ownership/permissions/access), `BlockBreakEvent` (protects chests and signs from unauthorized breaking), `BlockPlaceEvent` (protects chests from unauthorized expansion by placing adjacent chests), `InventoryClickEvent` (blocks item manipulation in preview inventory).
-- `ChestData` -- Singleton (`data/chests.yml`) storing sign ownership. Maps sign locations to owner UUIDs. Methods: `getOwnerOrNull(Sign)`, `removeSign(Sign)`.
-- `PlayerData` -- Singleton (`data/data.yml`) storing per-player chest interaction history. Inner class `ChestDataCache` tracks `lastUsed` timestamp and `usedCount`. Inner class `PlayerDataFile` maps chest locations to `ChestDataCache` entries.
-- `GiftSignUtil` -- Utility for finding chests attached to signs and constructing `WinterChest` instances. `registerSign()` saves ownership and formats the sign lines. `findChestFull()` searches the chest and all adjacent signs. `constructChest()` parses a sign into the appropriate chest type based on the first line title.
+- `ChestData` -- Singleton (`data/chests.yml`) storing sign ownership.
+- `PlayerData` -- Singleton (`data/data.yml`) storing per-player chest interaction history.
+- `GiftSignUtil` -- Utility for finding chests attached to signs and constructing `WinterChest` instances.
 
 ### Chest Creation Flow
 
@@ -47,104 +47,6 @@ Winter provides three types of special chests created by placing signs on regula
 - Breaking a chest or sign: owner and admins can break; others get blocked with `chest-illegal-break` / `chest-illegal-break-sign`. On break, sign data is cleaned from `ChestData` and player data from `PlayerData`.
 - Placing adjacent chest: owner and admins can expand; others get blocked with `chest-illegal-expand`.
 - Preview inventory: all `InventoryClickEvent`s in the preview title are cancelled.
-
-## Configuration
-
-### Gift_Chest (settings.yml)
-
-```yaml
-Gift_Chest:
-  Enabled: true                    # Master toggle for [Gift] sign functionality
-  Title: "&8[&fGift&8]"           # Text shown on line 1 of the sign after creation
-  Public:
-    Allow: true                    # Allow signs without receiver names (open to everyone)
-    Format: |-                     # Lines 2-4 for public signs (max 3 lines)
-      Click for
-      free gifts!
-  Private:
-    Format: |-                     # Lines 2-4 for private signs, supports placeholders
-      {receiver_1}
-      {receiver_2}
-      {receiver_3}
-```
-
-### Dated_Chest (settings.yml)
-
-```yaml
-Dated_Chest:
-  Preview: true                    # true = 2 opens (first preview, then loot), false = 1 open for loot
-  Default_Year: 2026               # Year assumed when sign date has no year (e.g. 24.12-25.12)
-```
-
-### Sign Formats
-
-**Gift chest sign:**
-```
-Line 1: [Gift]
-Line 2: PlayerName1     (or empty for public)
-Line 3: PlayerName2     (optional)
-Line 4: PlayerName3     (optional)
-```
-
-**Dated chest sign:**
-```
-Line 1: [Dated]
-Line 2: DD.MM or DD.MM-DD.MM       (required, e.g. 24.12 or 24.12-25.12)
-Line 3: HH:MM or HH:MM-HH:MM      (optional, e.g. 17:00-20:00)
-Line 4: (unused)
-```
-
-**Timed chest sign:**
-```
-Line 1: [Timed]
-Line 2: <duration>                   (required, e.g. 24h, 40m, 10s, 2d)
-Line 3: <max_uses>                   (optional integer, omit for unlimited)
-Line 4: (unused)
-```
-
-### Permissions
-
-| Permission | Description |
-|---|---|
-| `winter.chest.gift` | Place a [Gift] sign on a chest |
-| `winter.chest.dated` | Place a [Dated] sign on a chest |
-| `winter.chest.timed` | Place a [Timed] sign on a chest |
-| `winter.chest.admin` | Bypass chest protection, open any locked chest, bypass date/time restrictions |
-
-### Locale Messages (lang/en_US.json)
-
-| Key | Context |
-|---|---|
-| `boxed-chest-open` | Shown when looting an infinite chest (multi-line boxed) |
-| `boxed-chest-preview` | Shown when previewing a dated chest (multi-line boxed) |
-| `chest-break-admin` | Admin broke a public gift chest |
-| `chest-break-admin-sign` | Admin broke a gift chest sign |
-| `chest-break-own` | Owner broke their own chest |
-| `chest-break-own-sign` | Owner broke their own sign |
-| `chest-create-success` | Winter sign placed successfully |
-| `chest-dated-limit` | Player already opened this dated chest |
-| `chest-dated-not-ready` | Dated chest not yet available (shows date/time range) |
-| `chest-expand-own` | Owner expanded a locked gift chest |
-| `chest-format-dated` | Expected format hint for [Dated] signs |
-| `chest-format-gift` | Expected format hint for [Gift] signs |
-| `chest-format-timed` | Expected format hint for [Timed] signs |
-| `chest-illegal-access` | Non-receiver tried to open a private gift chest |
-| `chest-illegal-break` | Unauthorized player tried to break a chest |
-| `chest-illegal-break-sign` | Unauthorized player tried to break a sign |
-| `chest-illegal-expand` | Unauthorized player tried to expand a chest |
-| `chest-illegal-inventory-click` | Player clicked in a preview inventory |
-| `chest-illegal-place` | Player tried to place a block on a Winter chest while sneaking |
-| `chest-invalid-format` | Sign has wrong format (includes expected format) |
-| `chest-no-player` | Gift sign placed without receivers when public is disabled |
-| `chest-no-sign` | Sign placed not adjacent to a chest |
-| `chest-open-admin` | Admin viewing a locked chest |
-| `chest-open-admin-dated` | Admin bypassed date restriction |
-| `chest-open-own` | Owner browsing their own chest |
-| `chest-open-private` | Named receiver opening their gift |
-| `chest-open-public` | Anyone opening a public gift chest |
-| `chest-timed-limit` | Player exceeded max uses for a timed chest |
-| `chest-timed-not-ready` | Timed chest cooldown not elapsed (shows remaining time) |
-| `part-at`, `part-between`, `part-on` | Localized prepositions for date messages |
 
 ## Common Issues & Solutions
 
@@ -172,8 +74,7 @@ Line 4: (unused)
 - Infinite chest base: `src/main/java/org/mineacademy/winter/chest/InfiniteChest.java`
 - Dated chest: `src/main/java/org/mineacademy/winter/chest/DatedChest.java`
 - Timed chest: `src/main/java/org/mineacademy/winter/chest/TimedChest.java`
-- Chest listener: `src/main/java/org/mineacademy/winter/listener/ChestListener.java`
-- Chest data: `src/main/java/org/mineacademy/winter/model/ChestData.java`
-- Player data: `src/main/java/org/mineacademy/winter/model/PlayerData.java`
-- Sign utilities: `src/main/java/org/mineacademy/winter/util/GiftSignUtil.java`
-- Permissions: `src/main/java/org/mineacademy/winter/model/Permissions.java`
+
+## Reference
+
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

@@ -43,92 +43,6 @@ ChatControl provides `/tell` and `/reply` for private messages with custom forma
       17. Send to proxy (if enabled)
 ```
 
-## Configuration (`settings.yml` → `Private_Messages`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Command_Aliases` | `[tell, msg, pm, whisper, w]` | Tell aliases |
-| `Reply_Aliases` | `[reply, r]` | Reply aliases |
-| `Format_Sender` | `pm-sender` | Format for sender view |
-| `Format_Receiver` | `pm-receiver` | Format for receiver view |
-| `Format_Console` | string | Console log format |
-| `Format_Toast` | string | Toast notification format |
-| `Sound` | configured | Sound played to receiver |
-| `Toasts` | false | Enable toast notifications |
-| `Proxy` | false | Enable cross-server PMs |
-| `Sender_Overrides_Receiver_Reply` | false | Reply target tracking |
-
-### PM Format Files
-- `formats/pm-sender.yml` — what the sender sees
-- `formats/pm-receiver.yml` — what the receiver sees
-
-### PM Variables
-- `{sender_*}` — sender's name, prefix, suffix, etc.
-- `{receiver_*}` — receiver's name, prefix, suffix, etc.
-- `{message}` — the PM content
-
-## Ignore System
-
-`/ignore <player>` toggles bidirectional blocking:
-- Ignored players can't send PMs to you
-- You can't send PMs to ignored players
-- Stored in `PlayerCache.ignoredPlayers` (Set<UUID>)
-
-### Permissions
-- `chatcontrol.command.ignore` — use /ignore
-- `chatcontrol.command.ignore.list` — list ignored
-- `chatcontrol.command.ignore.others` — view others' ignore lists
-- `chatcontrol.bypass.reach` — bypass ignore restrictions
-
-## Toggle System
-
-`/toggle <type>` allows players to disable features:
-- `private_message` — disable receiving PMs
-- `mail` — disable receiving mail
-- `announcement` — disable announcements
-- `me` — disable /me messages
-- `death` / `join` / `kick` / `quit` — disable event messages
-- `sound_notify` — disable @mention sounds
-
-Stored in `PlayerCache.toggledOffParts` (Set<ToggleType>)
-
-## Mail System
-
-### Overview
-Offline mail delivery with book-based messages, expiration, and auto-responder.
-
-### Key Features
-- Send mail to offline players (delivered on next login)
-- Book format for rich text
-- Auto-purge configurable (`Settings.Mail.CLEAN_AFTER`)
-- Recipient notification on login
-- UUID-based mail lookup
-
-### Mail Configuration (`settings.yml` → `Mail`)
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Command_Aliases` | `[mail]` | Mail command aliases |
-| `Forward_Using_Proxy` | false | Proxy mail support |
-| `Clean_After` | `30 days` | Auto-purge old mail |
-
-### Permissions
-- `chatcontrol.command.mail` — basic mail access
-- `chatcontrol.command.mail.send.online` — send to online players
-- `chatcontrol.command.mail.send.all` — send to offline players
-
-### Auto-Responder
-```java
-cache.setAutoResponder(book, expirationTime);
-```
-Automatically replies to incoming mail with a book message until expiration.
-
-## Social Spy
-
-Staff with `chatcontrol.spy.private_message` see all PMs:
-- Uses spy format (`Settings.Spy.FORMAT_PRIVATE_MESSAGE`)
-- Configurable Discord webhook
-- Proxy spy forwarding available
-
 ## Common Issues & Solutions
 
 ### "Can't send PM — 'player is ignoring you'"
@@ -173,14 +87,6 @@ Staff with `chatcontrol.spy.private_message` see all PMs:
 - PM formats: `chatcontrol-bukkit/src/main/resources/formats/pm-sender.yml`, `pm-receiver.yml`
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Private_Messages, Mail)
 
-## API Events
+## Reference
 
-- `PrePrivateMessageEvent` — before PM delivery (cancellable, can modify message)
-- `SpyEvent` — fired when spy broadcast includes this PM
-
-## Foundation Integration
-
-- `Format` — format loading and building
-- `SimpleComponent` — component output
-- `SimpleBook` — book-based mail content
-- `Variables.builder()` — sender/receiver placeholder replacement
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

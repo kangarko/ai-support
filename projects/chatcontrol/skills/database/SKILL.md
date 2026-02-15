@@ -61,84 +61,6 @@ ChatControl uses a SQL database (SQLite default, MySQL/MariaDB optional) to pers
 }
 ```
 
-## Configuration (`database.yml`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Type` | `local` | `local` (SQLite) or `remote` (MySQL/MariaDB) |
-| `Host` | `localhost:3306` | MySQL host:port |
-| `Database` | `''` | Database name |
-| `User` | `''` | MySQL username |
-| `Password` | `''` | MySQL password |
-| `Line` | JDBC template | Custom connection string |
-
-**database.yml does NOT support live reloading — restart required.**
-
-### JDBC Connection String Template
-```
-jdbc:{driver}://{host}/{database}?autoReconnect=true&characterEncoding=UTF-8&tcpKeepAlive=true&useSSL=false
-```
-Placeholders `{driver}`, `{host}`, `{database}` are auto-replaced.
-
-## Data Lifecycle
-
-### Player Join
-```
-Player joins
-  → SenderCache marks as loading
-  → Database.loadAndStoreCache(player) — async
-    → Query PLAYERS table by UUID/Name
-    → Deserialize Data JSON → PlayerCache object
-    → PlayerCache.onJoin() — channel auto-join, check limits, MOTD, mail notify
-    → SenderCache marks as loaded
-    → ProxyChat begins syncing
-```
-
-### Player Quit
-```
-Player quits
-  → PlayerCache.upsert() — save to database
-  → Remove from memory cache
-  → SenderCache cleanup
-```
-
-### Auto-Purge
-```
-On startup (prepareTables):
-  → Purge inactive players (Settings.CLEAR_DATA_IF_INACTIVE threshold)
-  → Purge old logs (Settings.Log.CLEAN_AFTER)
-  → Purge old mail (Settings.Mail.CLEAN_AFTER)
-```
-
-## UUID vs Name Lookup
-
-`Settings.UUID_LOOKUP` controls the primary key:
-- `true` (default) — UUID is primary, name is indexed
-- `false` — Name is primary, UUID is indexed
-- Affects all lookups, including proxy sync
-
-## Key Database Operations
-
-### Async Cache Lookup
-```java
-PlayerCache.poll("playerName", cache -> {
-    // cache may be null if not found
-    // Checks: memory cache → online players → database
-});
-```
-
-### Name/UUID Resolution
-```java
-Database.getInstance().getUniqueId("Steve", uuid -> { ... });
-Database.getInstance().getPlayerName(uuid, name -> { ... });
-```
-
-### Batch Operations
-```java
-Database.getInstance().getPlayerNamesSync(uuidCollection); // BLOCKING - use carefully
-Database.getInstance().getUniqueIds(nameCollection, uuidList -> { ... });
-```
-
 ## Common Issues & Solutions
 
 ### "Database connection failed"
@@ -184,10 +106,6 @@ Database.getInstance().getUniqueIds(nameCollection, uuidList -> { ... });
 - Migrator: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/Migrator.java`
 - Config: `chatcontrol-bukkit/src/main/resources/database.yml`
 
-## Foundation Integration
+## Reference
 
-- `SimpleDatabase` — base database class (connection, query, CRUD)
-- `Row` — base class for database rows
-- `Table` — table definition and schema
-- `SimpleResultSet` — result set wrapper
-- `DatabaseType` — LOCAL/REMOTE enum
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

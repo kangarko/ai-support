@@ -48,147 +48,6 @@ class MuteData {
 }
 ```
 
-## Mute Commands
-
-### `/mute <player> [duration] [reason] [-s] [-a]`
-- No duration = permanent mute
-- Duration format: `30m`, `2h`, `1d`, `30s`
-- `-s` = silent (no broadcast)
-- `-a` = anonymous (hide who muted)
-- Permission: `chatcontrol.command.mute`
-
-### `/unmute <player>`
-- Removes active mute
-- Permission: `chatcontrol.command.unmute`
-
-### `/mute channel <channel>`
-- Mutes entire channel for everyone
-- Permission: `chatcontrol.command.mute.channel`
-
-### `/mute server`
-- Mutes all chat server-wide
-- Permission: `chatcontrol.command.mute.server`
-
-## Mute Configuration (`settings.yml` → `Mute`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Broadcast` | true | Announce mutes server-wide |
-| `Broadcast_Anonymous` | true | Broadcast anonymous mutes |
-| `Prevent_Writing` | true | Block muted player messages |
-| `Prevent_Commands` | `[]` | Block these commands when muted |
-| `Hide_Message` | false | Hide "you are muted" on every attempt |
-| `Soft_Mute` | false | Only show own messages to self (others don't see) |
-
-### Soft Mute
-When `Soft_Mute: true`, the muted player still sees their own messages in chat, but no one else does. This prevents them from realizing they're muted.
-
-### Command Blocking
-```yaml
-Prevent_Commands:
-  - /me
-  - /say
-  - /tell
-```
-When muted, these commands are also blocked.
-
-## Warning Points System
-
-### Overview
-Players accumulate warning points from rule violations. Points trigger escalating punishments when thresholds are reached.
-
-### Key Classes
-- `WarningPoints` — point tracking in PlayerCache
-- `Checker.java` — assigns points on rule violations
-- `RuleOperator` — `warn` operator in rules
-
-### Point Sets
-Points are grouped into named sets for different violation types:
-
-```yaml
-# settings.yml → Warning_Points
-Warning_Points:
-  Enabled: true
-  
-  Sets:
-    swear:
-      Trigger_Amount: 5
-      Trigger_Actions:
-        - "console /tempban {player} 1h Excessive swearing"
-      Reset_Points: true
-      
-    spam:
-      Trigger_Amount: 3
-      Trigger_Actions:
-        - "console /tempmute {player} 30m Spamming"
-      Reset_Points: true
-      
-    caps:
-      Trigger_Amount: 10
-      Trigger_Actions:
-        - "warn {player} Stop using excessive caps!"
-      Reset_Points: false
-```
-
-### Rule Integration
-Rules assign points via the `warn` operator:
-
-```
-# rules/chat.rs
-match \b(badword1|badword2)\b
-warn swear
-then deny
-```
-
-This adds 1 point to the "swear" set each time the rule matches.
-
-### Point Triggers
-When a set reaches its `Trigger_Amount`, the `Trigger_Actions` execute:
-
-| Action | Example | Purpose |
-|--------|---------|---------|
-| `console <cmd>` | `console /ban {player}` | Run console command |
-| `player <cmd>` | `player /spawn` | Force player command |
-| `warn <msg>` | `warn Stop swearing!` | Send warning message |
-| `kick <reason>` | `kick Excessive violations` | Kick player |
-| `toast <msg>` | `toast Warning!` | Show toast |
-| `title <msg>` | `title &cWarning` | Show title |
-| `actionbar <msg>` | `actionbar &eWatch it!` | Show actionbar |
-
-### Point Decay
-```yaml
-Warning_Points:
-  Reset_Task:
-    Enabled: true
-    Period: 24 hours
-    Amount: 1
-```
-
-Points decay over time:
-- `Period` — how often decay runs
-- `Amount` — how many points removed per run
-- Applies to all sets equally
-
-### Point Commands
-- `/chc points <player>` — view player's points
-- `/chc points <player> <set> <amount>` — set points
-- `/chc points <player> reset` — reset all points
-- Permission: `chatcontrol.command.points`
-
-## Mute + Warning Integration
-
-Rules can both warn and mute:
-```
-# rules/chat.rs
-match \b(terrible_word)\b
-warn swear
-then deny
-handle quietly
-
-# When swear points hit 5, trigger action mutes them:
-# console /chc mute {player} 1h Accumulated swearing warnings
-```
-
 ## Common Issues & Solutions
 
 ### "Muted player can still chat"
@@ -226,17 +85,6 @@ handle quietly
 2. Check `Reset_Task.Period` isn't too long
 3. Player must be online for decay (offline players retain points)
 
-## Bypass Permissions
-
-| Permission | Effect |
-|------------|--------|
-| `chatcontrol.bypass.mute` | Immune to mute |
-| `chatcontrol.bypass.warn` | Immune to warning points |
-| `chatcontrol.command.mute` | Can mute players |
-| `chatcontrol.command.unmute` | Can unmute players |
-| `chatcontrol.command.mute.channel` | Can mute channels |
-| `chatcontrol.command.mute.server` | Can mute server |
-
 ## Key File Paths
 
 - Mute: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/Mute.java`
@@ -245,8 +93,6 @@ handle quietly
 - Warning Points config: `chatcontrol-bukkit/src/main/resources/settings.yml` (Warning_Points section)
 - Rule operators: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/operator/RuleOperator.java`
 
-## Foundation Integration
+## Reference
 
-- `TimeUtil` — duration parsing (30m, 2h, 1d)
-- `PlayerCache` — persistent mute/point storage
-- `CompRunnable` — scheduled point decay task
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

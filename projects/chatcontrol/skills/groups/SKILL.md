@@ -28,40 +28,6 @@ PlayerGroup.getFor(player)
   → No match → return global default
 ```
 
-## Configuration (`settings.yml` → `Groups`)
-
-### Overridable Settings
-
-| Setting | Type | PlayerGroup.Type | Default Source |
-|---------|------|------------------|--------------|
-| `Max_Read_Channels` | Integer | MAX_READ_CHANNELS | `Channels.Max_Read_Channels` |
-| `Message_Delay` | SimpleTime | MESSAGE_DELAY | `Anti_Spam.Chat.Delay` |
-| `Message_Similarity` | Double | MESSAGE_SIMILARITY | `Anti_Spam.Chat.Similarity` |
-| `Command_Delay` | SimpleTime | COMMAND_DELAY | `Anti_Spam.Commands.Delay` |
-| `Command_Similarity` | Double | COMMAND_SIMILARITY | `Anti_Spam.Commands.Similarity` |
-| `Sound_Notify_Format` | String | SOUND_NOTIFY_FORMAT | global format |
-| `Motd` | String | MOTD | global MOTD |
-
-### Example Configuration
-```yaml
-Groups:
-  vip:
-    Max_Read_Channels: 5
-    Message_Delay: 0.5 seconds
-    Message_Similarity: 60
-  admin:
-    Max_Read_Channels: 10
-    Message_Delay: 0 seconds
-    Message_Similarity: 0
-    Command_Similarity: 0
-```
-
-## Permissions
-
-- `chatcontrol.group.<name>` — assigns player to group
-- First matching group wins if player has multiple group permissions
-- Groups are checked in the order they appear in settings.yml
-
 ## Common Issues & Solutions
 
 ### "Group override not applying"
@@ -90,7 +56,6 @@ Groups:
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Groups section)
 - Permissions: `chatcontrol-core/src/main/java/org/mineacademy/chatcontrol/model/Permissions.java`
 
-## Foundation Integration
+## Reference
 
-- `HookManager` — uses Vault for offline permission checks (`getForUUID()`)
-- `SimpleTime` — parses delay durations
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

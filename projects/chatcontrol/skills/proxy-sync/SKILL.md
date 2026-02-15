@@ -40,59 +40,6 @@ On player join (PendingProxyJoinTask):
     → Proxy relays player data to this server
 ```
 
-## Configuration (`proxy.yml`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Enabled` | false | Master toggle |
-| `Prefix` | `<dark_gray>[<yellow>{server_name}<dark_gray>] <gray>` | Prefix for cross-server messages |
-| `Server_Name` | `''` | **Must match** velocity.toml or BungeeControl config |
-| `Allow_Console_Forward_Command` | false | Allow `/chc forward` from console |
-
-**proxy.yml does NOT support live reloading — restart required.**
-
-## Synced Data Types (SyncType)
-
-| Type | Data | Source |
-|------|------|--------|
-| `SERVER` | Server name | Platform config |
-| `AFK` | AFK status | Hook (Essentials, CMI) |
-| `CHANNELS` | Channel memberships (name:mode pairs) | PlayerCache |
-| `IGNORE` | Ignored player UUIDs | PlayerCache |
-| `TOGGLED_OFF_PARTS` | Disabled features (mail, PMs, etc.) | PlayerCache |
-| `IGNORED_MESSAGES` | Muted broadcast groups | PlayerCache |
-| `NICK_COLORED_PREFIXED` | Colored nick with prefix | PlayerCache tags |
-| `NICK_COLORLESS` | Plain nickname | PlayerCache tags |
-| `VANISH` | Vanish status | Hook (SuperVanish, etc.) |
-| `GROUP` | Primary permission group | Vault |
-| `PREFIX` | Chat prefix | Vault |
-| `SUFFIX` | Chat suffix | Vault |
-| `MUTE_BYPASS` | Has mute bypass permission | Permissions check |
-
-## Proxy Message Types (ChatControlProxyMessage)
-
-Key message types:
-- `PLAYER_DATA` — periodic sync (SyncType values)
-- `DATABASE_READY` — player database loaded, ready for data
-- `MESSAGE` — private message forwarding
-- `ANNOUNCEMENT` — network-wide announcements
-- `MUTE` / `UNMUTE` — network mute commands
-- `SPY_UUID` — spy message forwarding
-- `CHANNEL_MESSAGE` — cross-server channel messages
-- `FORWARD` — `/chc forward` command
-
-## Channel Proxy Support
-
-Per-channel in `settings.yml`:
-```yaml
-Channels:
-  List:
-    global:
-      Format: global-chat
-      Proxy: true        # Forward messages to other servers
-      Proxy_Spy: true    # Forward spy messages too
-```
-
 ## Common Issues & Solutions
 
 ### "Proxy sync not working"
@@ -133,9 +80,6 @@ Channels:
 - BungeeCord module: `chatcontrol-bungeecord/`
 - Velocity module: `chatcontrol-velocity/`
 
-## Foundation Integration
+## Reference
 
-- `ProxyUtil.sendPluginMessage()` — sends data to proxy
-- `ProxyListener` / `ProxyMessage` — Foundation's proxy abstraction
-- `IncomingMessage` / `OutgoingMessage` — message serialization
-- `FoundationPlugin.getPluginMessageChannel()` — returns plugin channel name
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

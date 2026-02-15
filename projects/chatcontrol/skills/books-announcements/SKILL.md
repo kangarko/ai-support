@@ -41,123 +41,6 @@ Server startup
       5. Track last-shown index per player
 ```
 
-## Configuration
-
-### Announcement Files (`settings.yml` → `Announcements`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Enabled` | false | Master toggle |
-| `Delay` | `5 minutes` | Time between announcements |
-| `Random` | false | Random vs sequential order |
-| `Header` / `Footer` | none | Message prefix/suffix |
-| `Worlds` | `[]` | Limit to specific worlds |
-| `Permission` | none | Require permission to see |
-
-### Announcement Message Files
-Located in `messages/` directory with `.rs` format:
-
-```
-# messages/announcements.rs
-group tips
-type chat
-message:
-- &eTip: Use /help for commands!
-- &eTip: Visit our website!
-
-group rules_reminder
-type title
-title: &cRemember
-subtitle: &7Follow the server rules!
-stay: 40
-
-group image_ad
-type image
-image: logo
-message:
-- &bWelcome to our server!
-```
-
-### Announcement Conditions
-```
-group vip_announce
-type toast
-permission chatcontrol.announce.vip
-condition: {player_world} == world_vip
-message:
-- &6VIP Event starting soon!
-```
-
-### Boss Bar Options
-```
-group bossbar_demo
-type bossbar
-message:
-- &aServer restarting in 5 minutes
-color: RED
-style: SEGMENTED_6
-seconds: 30
-```
-
-## Books
-
-### Book System
-Books are YAML files in `books/` directory loaded as Minecraft book items:
-
-```yaml
-# books/help.yml
-Title: Help Book
-Author: Server
-Pages:
-  - |
-    &lWelcome!
-    
-    &7This is page 1
-    [Click here](run_command:/spawn)
-  - |
-    &lPage 2
-    
-    &7More content here
-```
-
-### Book Features
-- **Rich text**: Colors, bold, italic, formatting
-- **Click actions**: `run_command`, `suggest_command`, `open_url`
-- **Hover text**: Tooltips on text
-- **Placeholders**: All ChatControl variables work
-- **Pages**: Multi-page support
-
-### MOTD (Message of the Day)
-```yaml
-# settings.yml → Motd
-Motd:
-  Enabled: true
-  Delay: 1 second
-  Format: motd_book  # references books/motd_book.yml
-```
-
-Players see the MOTD book on join after the configured delay.
-
-### Built-in Books
-- `books/help.yml` — help book (shown via `/chc book help`)
-- Custom books: Add any `.yml` to `books/` folder
-
-### Book Commands
-- `/chc book <name>` — open a book
-- `/chc book <name> <player>` — open book for player
-- Permission: `chatcontrol.command.book`
-
-## Broadcast Command
-
-`/chc announce <type>` — manual broadcast:
-- `/chc announce chat <message>` — send chat announcement
-- `/chc announce title <message>` — show title
-- `/chc announce actionbar <message>` — actionbar text
-- `/chc announce bossbar <message>` — boss bar
-- `/chc announce toast <message>` — toast popup
-
-Permission: `chatcontrol.command.announce`
-
 ## Common Issues & Solutions
 
 ### "Announcements not showing"
@@ -194,14 +77,6 @@ Permission: `chatcontrol.command.announce`
 - ASCII art rendered from stored pixel data
 - Check console for image loading errors
 
-## Timed Announcement Scheduling
-
-The announcer uses Foundation's `SimpleRunnable` for scheduling:
-- Each announcement group has an index tracked per-player
-- Sequential mode: increments index, wraps around
-- Random mode: picks random group each cycle
-- Per-player tracking ensures all groups shown before repeating (sequential)
-
 ## Key File Paths
 
 - Announce: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/Announce.java`
@@ -212,9 +87,6 @@ The announcer uses Foundation's `SimpleRunnable` for scheduling:
 - Announcement messages: `chatcontrol-bukkit/src/main/resources/messages/`
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Announcements, Motd)
 
-## Foundation Integration
+## Reference
 
-- `SimpleBook` — book ItemStack builder
-- `SimpleComponent` — component formatting for book pages
-- `SimpleRunnable` — scheduled task for announcement cycling
-- `CompChatColor` — color/formatting support
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

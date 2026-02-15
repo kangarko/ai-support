@@ -39,102 +39,6 @@ ChatControl allows players to set custom tags (prefix, nick, suffix) that displa
       8. Save to database
 ```
 
-## Configuration (`settings.yml` → `Tag`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Enabled` | false | Master toggle |
-| `Apply_On.Chat` | true | Show tag in chat |
-| `Apply_On.Tab` | false | Show tag in tab list |
-| `Apply_On.Nametag` | false | Show tag above head |
-| `Min_Length` | 2 | Minimum tag length |
-| `Max_Length` | 16 | Maximum tag length |
-| `Max_Nick_Length` | 16 | Max nick length |
-
-### Color Permissions
-Players need explicit permissions for tag colors:
-- `chatcontrol.tag.color.<color>` — specific color (e.g., `chatcontrol.tag.color.red`)
-- `chatcontrol.tag.color.*` — all colors
-- `chatcontrol.tag.color.bold`, `.italic`, `.underline`, `.strikethrough` — decorations
-- `chatcontrol.tag.color.gradient` — gradient colors
-- `chatcontrol.tag.color.hex` — hex colors (#RRGGBB)
-
-### Tag Rules (`rules/tag.rs`)
-```
-# Block offensive tags
-match \b(badword|admin|mod)\bi
-then deny
-warn &cThat tag is not allowed!
-
-# Enforce tag format
-match ^[a-zA-Z0-9_&§ ]+$
-require true
-then deny
-warn &cTags may only contain letters, numbers, and colors.
-```
-
-Tag rules use the same `.rs` rule engine as chat rules but apply specifically to tag input.
-
-## Commands
-
-### `/tag <type> <value>`
-Set your own tag:
-- `/tag prefix &a[VIP]` — set prefix
-- `/tag nick &bCoolName` — set nick
-- `/tag suffix &7[Builder]` — set suffix
-- Permission: `chatcontrol.command.tag.<type>`
-
-### `/tag <type> off`
-Remove your tag:
-- `/tag prefix off` — remove prefix
-- Permission: `chatcontrol.command.tag.<type>`
-
-### `/tag <type> <player> <value>`
-Set another player's tag:
-- `/tag nick Steve &6KingSteve`
-- Permission: `chatcontrol.command.tag.<type>.others`
-
-### Tab Completion
-- Colors: completes available color codes based on permissions
-- Types: completes prefix/nick/suffix
-- Players: completes online player names
-
-## Tag Variables
-
-Tags are available as variables in formats:
-- `{player_tag_prefix}` or `{tag_prefix}` — player's prefix tag
-- `{player_tag_nick}` or `{tag_nick}` — player's nick tag  
-- `{player_tag_suffix}` or `{tag_suffix}` — player's suffix tag
-- `{player_nick}` — nick if set, otherwise real name
-
-### In Format Files
-```yaml
-# formats/chat.yml
-Parts:
-  prefix:
-    Message: '{player_tag_prefix} '
-    Condition: '{player_tag_prefix} != ""'
-  name:
-    Message: '{player_tag_nick|player_name}'  # nick or real name
-  suffix:
-    Message: ' {player_tag_suffix}'
-    Condition: '{player_tag_suffix} != ""'
-```
-
-## Storage
-
-Tags are stored in `PlayerCache` and persisted via database:
-- `playerTag` (String) — prefix tag value
-- `playerNick` (String) — nick value
-- `playerSuffix` (String) — suffix value
-
-Database columns: `tag_prefix`, `tag_nick`, `tag_suffix` in player data table.
-
-### Vault Integration
-If Vault is present and configured, tags can integrate with Vault's prefix/suffix system:
-- ChatControl tags can override Vault values
-- Or Vault values used as fallback when no tag set
-
 ## Common Issues & Solutions
 
 ### "Tag not showing in chat"
@@ -172,20 +76,6 @@ If Vault is present and configured, tags can integrate with Vault's prefix/suffi
 - Use condition parts to hide empty tags
 - Consider padding or consistent tag lengths
 
-## Permissions Summary
-
-| Permission | Purpose |
-|------------|---------|
-| `chatcontrol.command.tag.prefix` | Set own prefix |
-| `chatcontrol.command.tag.nick` | Set own nick |
-| `chatcontrol.command.tag.suffix` | Set own suffix |
-| `chatcontrol.command.tag.<type>.others` | Set others' tags |
-| `chatcontrol.tag.color.<color>` | Use specific color |
-| `chatcontrol.tag.color.*` | All colors |
-| `chatcontrol.tag.color.hex` | Hex colors |
-| `chatcontrol.tag.color.gradient` | Gradients |
-| `chatcontrol.bypass.tag` | Bypass tag rules |
-
 ## Key File Paths
 
 - Tag: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/Tag.java`
@@ -194,9 +84,6 @@ If Vault is present and configured, tags can integrate with Vault's prefix/suffi
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Tag section)
 - Player data: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/db/PlayerCache.java`
 
-## Foundation Integration
+## Reference
 
-- `PlayerCache` — tag storage and persistence
-- `CompChatColor` — color permission checking
-- `Variables` — tag variable registration
-- `Database` — tag persistence
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.

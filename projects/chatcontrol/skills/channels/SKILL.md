@@ -37,62 +37,6 @@ Player types message
       12. Fire ChannelPostChatEvent
 ```
 
-## Configuration
-
-### Global Settings (`settings.yml` → `Channels`)
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `Enabled` | false | Master toggle — must be `true` |
-| `Ignore_Worlds` | `[]` | Worlds excluded from channel formatting |
-| `Command_Aliases` | `[channel, ch]` | Aliases for `/channel` command |
-| `Max_Read_Channels` | 3 | Max simultaneous READ channels (overridable per group) |
-| `Join_Read_Old` | true | Auto-set old write channel to READ when switching |
-| `Format_Console` | `[{channel}] {player}: {message}` | Default console log format |
-| `Format_Discord` | `**{player}**: {message}` | Default Discord format |
-
-### Per-Channel Settings (`settings.yml` → `Channels.List.<name>`)
-
-| Key | Type | Purpose |
-|-----|------|---------|
-| `Format` | String | **Required**. Format file name OR literal MiniMessage string |
-| `Format_Console` | String | Console format override. `"none"` = cancel event, `"default"` = use channel output |
-| `Format_To_Discord` | String | MC→Discord message format |
-| `Format_From_Discord` | String | Discord→MC message format |
-| `Format_Discord_Webhook_Name` | String | Discord webhook sender name override |
-| `Format_Spy` | String | Spy message format override |
-| `Range` | String/Number | Distance in blocks, or `*` for world-wide |
-| `Range_Worlds` | List | Linked worlds when `Range: "*"` |
-| `Min_Players_For_Range` | Integer | Min players before range activates |
-| `Party` | String | Party plugin type (e.g., `towny-town`, `factions-faction`) |
-| `Message_Delay` | SimpleTime | Per-channel message cooldown (overrides global) |
-| `Proxy` | Boolean | Forward messages to BungeeCord/Velocity |
-| `Proxy_Spy` | Boolean | Forward spy messages over proxy |
-| `Discord_Channel_Id` | Long | Linked Discord channel ID |
-| `Discord_Spy_Channel_Id` | Long | Discord spy channel ID |
-| `Sound` | SimpleSound | Sound played to channel recipients |
-| `Cancel_Event` | Boolean | Cancel Bukkit event (hides from DynMap/other plugins) |
-
-### Default Channels
-
-| Channel | Format | Description |
-|---------|--------|-------------|
-| `standard` | `chat` | Default chat with spy |
-| `admin` | `admin-chat` | Admin-only chat |
-| `global` | `global-chat` | Global chat (no range) |
-| `ranged` | literal | 100-block range, proxy disabled |
-| `towny` | literal | Towny town party chat |
-| `helpop` | `helpop` | Help request channel |
-
-## Permissions
-
-- `chatcontrol.channel.join.{channel}.{mode}` — join channel in read/write
-- `chatcontrol.channel.autojoin.{channel}.{mode}` — auto-join on login
-- `chatcontrol.channel.send.{channel}` — send messages to channel
-- `chatcontrol.channel.sendas.{channel}` — send as another player
-- `chatcontrol.channel.leave.{channel}` — leave channel
-- `chatcontrol.bypass.range` — reach all players in ranged channels
-
 ## Common Issues & Solutions
 
 ### "Messages not showing in channel"
@@ -129,16 +73,6 @@ Player types message
 - Chat handler: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/listener/chat/ChatHandler.java`
 - Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Channels section)
 
-## API Events
+## Reference
 
-- `ChannelJoinEvent` / `ChannelLeaveEvent` — fired on join/leave
-- `ChannelPreChatEvent` — before message processing (cancellable)
-- `ChannelPostChatEvent` — after message sent to all receivers
-- `ChatChannelProxyEvent` — for incoming proxy messages
-
-## Foundation Integration
-
-- `YamlConfig` — base config class for channel definitions
-- `ConfigItems` — loads channels from settings.yml list
-- `SimpleComponent` — component output for formatted messages
-- `ProxyUtil` — cross-server message sending
+For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.
