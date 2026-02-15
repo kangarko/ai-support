@@ -1118,10 +1118,30 @@ def get_git_diff():
             ["git", "-C", MAIN_DIR, "reset", "--quiet"],
             capture_output=True, timeout=10,
         )
-        return result.stdout.strip()
+
+        diff = result.stdout.strip()
+
+        if len(diff) > MAX_DIFF_SIZE:
+            diff = diff[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
+
+        return diff
     except Exception as e:
         print(f"Warning: git diff failed: {e}")
         return ""
+
+
+async def try_models(client, models, system, prompt, tools, phase_label, timeout=3600):
+    for model in models:
+        print(f"{phase_label} — trying model: {model}")
+
+        try:
+            result = await run_agent_session(client, model, system, prompt, tools, timeout)
+            print(f"{phase_label} — complete: {result[:200]}")
+            return result
+        except Exception as e:
+            print(f"{phase_label} — {model} failed: {e}")
+
+    return None
 
 
 async def run():
@@ -1253,33 +1273,16 @@ Read the most relevant files above, then give a short, direct answer. Lead with 
     await client.start()
 
     try:
-        text           = None
-        model_failures = []
-
-        for model in models:
-            print(f"Phase 1 — trying model: {model}")
-
-            try:
-                text = await run_agent_session(client, model, system_prompt, user_prompt, all_tools)
-                print(f"Phase 1 — success with {model}")
-                break
-            except Exception as e:
-                model_failures.append(f"{model}: {e}")
-                print(f"Phase 1 — {model} failed: {e}")
+        text = await try_models(client, models, system_prompt, user_prompt, all_tools, "Phase 1")
 
         if not text:
-            raise RuntimeError(f"All models failed. Details: {' | '.join(model_failures)}")
-
-        review_system = build_review_prompt_system(name)
+            raise RuntimeError("All models failed in Phase 1.")
 
         if written_files:
             print(f"Phase 2 — self-reviewing {len(written_files)} changed file(s)")
             diff_output = get_git_diff()
 
             if diff_output:
-                if len(diff_output) > MAX_DIFF_SIZE:
-                    diff_output = diff_output[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
-
                 changed_summary = "\n".join(f"- `{wf['path']}`: {wf['reason']}" for wf in written_files)
 
                 review_prompt = f"""Review these proposed changes and the response for a {name} GitHub issue.
@@ -1307,49 +1310,11 @@ Read each changed file and its surrounding code. Verify correctness, then check:
 
 If you find problems, fix them with patch_codebase_file (for existing files) or write_codebase_file (for new files). If everything looks correct, respond with "LGTM"."""
 
-                for model in models:
-                    print(f"Phase 2 — trying model: {model}")
+                review_system = build_review_prompt_system(name)
+                review_result = await try_models(client, models, review_system, review_prompt, all_tools, "Phase 2")
 
-                    try:
-                        review_text = await run_agent_session(client, model, review_system, review_prompt, all_tools)
-                        print(f"Phase 2 — complete: {review_text[:200]}")
-                        break
-                    except Exception as e:
-                        print(f"Phase 2 — {model} failed: {e}")
-                else:
+                if not review_result:
                     print("Warning: Phase 2 self-review failed for all models — skipping review")
-
-            print("Phase 2b — ultrathink deep scan")
-            diff_2b = get_git_diff()
-
-            if diff_2b:
-                if len(diff_2b) > MAX_DIFF_SIZE:
-                    diff_2b = diff_2b[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
-
-                ultrathink_prompt = f"""Ultrathink like a senior engineer reviewing proposed changes to {name}.
-
-## Current Diff
-```diff
-{diff_2b}
-```
-
-Scan for DRY violations, broken code, hidden bugs, overengineering, edge cases, multiple functions or components doing the same thing. Also, scan your last code changes not being adopted elsewhere in the app and fix all. Don't hide errors, if you get an unexpected response, print the raw response.
-
-Read each changed file in full context. If you find problems, fix them with patch_codebase_file. If everything is clean, respond with "LGTM"."""
-
-                for model in models:
-                    print(f"Phase 2b — trying model: {model}")
-
-                    try:
-                        ultra_text = await run_agent_session(client, model, review_system, ultrathink_prompt, all_tools)
-                        print(f"Phase 2b — complete: {ultra_text[:200]}")
-                        break
-                    except Exception as e:
-                        print(f"Phase 2b — {model} failed: {e}")
-                else:
-                    print("Warning: Phase 2b ultrathink failed for all models — skipping")
-            else:
-                print("Phase 2b — no diff to review")
 
         if not (is_reply and text.strip().upper().startswith("SKIP")):
             print("Phase 3 — extracting insights")
@@ -1371,13 +1336,10 @@ Read the 1-2 most relevant skill files to verify your insight isn't already docu
 
             insight_tools = [read_codebase_file, search_codebase, store_insight]
 
-            for model in models:
-                try:
-                    await run_agent_session(client, model, insight_system, insight_prompt, insight_tools, timeout=180)
-                    print("Phase 3 — complete")
-                    break
-                except Exception as e:
-                    print(f"Phase 3 — {model} failed: {e}")
+            insight_result = await try_models(client, models, insight_system, insight_prompt, insight_tools, "Phase 3", timeout=180)
+
+            if not insight_result:
+                print("Warning: Phase 3 insight extraction failed for all models — skipping")
 
             if new_insights:
                 today          = datetime.now().strftime("%Y-%m-%d")
