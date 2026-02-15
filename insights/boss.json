@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "The ReinforcementsMenu (DeathMenu inner class) has a `canEditItem` method that validates placed items. When fixing or extending item validation in menu containers that accept multiple item types (e.g., both Boss eggs and vanilla monster eggs), always null-check the resolved item since both `clicked` and `cursor` parameters can be null simultaneously in Bukkit inventory click events.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 1441
+  }
+]
