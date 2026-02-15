@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "When multiple message groups match in .rs files (e.g., join.rs with Stop_On_First_Match disabled), one-time-per-group operators like `then console`, `then proxy`, and `then warn` are gated by a `firstTimeRun`/`executed` flag that must be reset at the start of each group's `filter()` call. Without the reset, only the first matching group's operators execute \u2014 messages still display for all groups but their side-effect operators are silently skipped.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3421
   }
 ]
