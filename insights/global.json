@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "proxy-sync",
+    "insight": "Foundation's VelocityListener BungeeQuack Forward \"ALL\" handler must exclude the source server to match BungeeCord's native behavior. Without this, any plugin using Forward \"ALL\" (e.g., Staff++) gets its own message echoed back, causing duplicates. This only manifests when `bungee-plugin-message-channel = false` in velocity.toml (which VelocityControl requires).",
+    "related_skill": "proxy-sync",
+    "scope": "global",
+    "date": "2026-02-15",
+    "issue": 3391
+  }
+]
