@@ -125,8 +125,8 @@ jobs:
 
       - name: Analyze issue and generate response
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_MCP_GITHUB_TOKEN }}
-          PROJECT_ID: ${{ inputs.project_id }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_MCP_GITHUB_TOKEN }}          GITHUB_APP_TOKEN: ${{ steps.app_token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}          PROJECT_ID: ${{ inputs.project_id }}
           ISSUE_TITLE: ${{ inputs.issue_title }}
           ISSUE_BODY: ${{ inputs.issue_body }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}

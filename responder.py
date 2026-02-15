@@ -6,6 +6,9 @@ import os
 import re
 import shutil
 import subprocess
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta
 from glob import glob as glob_files
 from pathlib import Path
@@ -22,11 +25,33 @@ MAX_FILE_SIZE         = 50_000
 MAX_SEARCH_FILES      = 20
 MAX_SEARCH_RESULTS    = 50
 MAX_DIFF_SIZE         = 30_000
+MAX_FETCH_SIZE        = 100_000
+MAX_FETCH_TIMEOUT     = 15
+MAX_ISSUE_RESULTS     = 10
 RESPONSE_FILE         = "response.md"
 CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 50_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
+
+ALLOWED_FETCH_DOMAINS = frozenset({
+    "github.com", "raw.githubusercontent.com",
+    "spigotmc.org", "www.spigotmc.org", "hub.spigotmc.org",
+    "papermc.io", "docs.papermc.io", "jd.papermc.io",
+    "wiki.vg", "minecraft.wiki", "minecraft.fandom.com",
+    "bukkit.org", "dev.bukkit.org",
+    "jitpack.io",
+    "docs.oracle.com",
+    "builtbybit.com",
+})
+
+EXCLUDED_BUILTIN_TOOLS = [
+    "bash", "shell", "write", "create",
+    "read", "grep", "glob", "ls",
+]
+
+github_app_token = ""
+repo_full_name   = ""
 
 STOP_WORDS = frozenset({
     "the", "is", "at", "which", "on", "a", "an", "in", "to", "for",
@@ -184,6 +209,9 @@ def build_system_prompt(cfg, skills):
         f"- If the issue lacks info, ask for: server version, {name} version, config snippets, error logs",
         "- NEVER suggest downgrading the plugin or Java version",
         "- NEVER tell users to write code, create plugins, or implement things themselves — your users are server owners, not developers. If a feature needs code, implement it yourself via `patch_codebase_file` (for existing files) or `write_codebase_file` (for new files) and propose a PR",
+        "- Use `fetch_url` to read documentation pages, wiki articles, or URLs referenced in issues",
+        "- Use `search_github_issues` to find related or duplicate issues before answering",
+        "- Use `get_github_issue` to read cross-referenced issues (e.g. when someone says 'same as #123')",
     ])
 
     if docs:
@@ -849,6 +877,163 @@ def patch_codebase_file(params: PatchFileParams) -> str:
         return f"Error writing file: {e}"
 
 
+class FetchUrlParams(BaseModel):
+    url: str = Field(description="The URL to fetch content from. Must be from an allowed domain (GitHub, SpigotMC, PaperMC docs, Minecraft wiki, etc.)")
+
+
+@define_tool(description="Fetch content from a URL and return it as text. Use this to read documentation pages, wiki articles, GitHub READMEs, or links referenced in issues. Only allowed domains can be fetched (GitHub, SpigotMC, PaperMC, Minecraft wiki, Bukkit, Oracle docs).")
+def fetch_url(params: FetchUrlParams) -> str:
+    url = params.url.strip()
+
+    if not url.startswith(("https://", "http://")):
+        return "Error: URL must start with https:// or http://"
+
+    parsed = urllib.parse.urlparse(url)
+    domain = parsed.hostname or ""
+
+    if domain not in ALLOWED_FETCH_DOMAINS:
+        return f"Error: Domain '{domain}' is not allowed. Allowed domains: {', '.join(sorted(ALLOWED_FETCH_DOMAINS))}"
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (GitHub-AI-Support-Bot)"})
+        with urllib.request.urlopen(req, timeout=MAX_FETCH_TIMEOUT) as resp:
+            content = resp.read().decode("utf-8", errors="replace")
+
+            if len(content) > MAX_FETCH_SIZE:
+                content = content[:MAX_FETCH_SIZE] + f"\n... (truncated at {MAX_FETCH_SIZE:,} characters)"
+
+            return content
+    except urllib.error.HTTPError as e:
+        return f"Error: HTTP {e.code} fetching {url}"
+    except urllib.error.URLError as e:
+        return f"Error: Could not reach {url}: {e.reason}"
+    except TimeoutError:
+        return f"Error: Request timed out after {MAX_FETCH_TIMEOUT}s"
+
+
+class SearchGithubIssuesParams(BaseModel):
+    query: str = Field(description="Search query for GitHub issues, e.g. 'NullPointerException in ChatChannel' or 'bungee proxy sync'")
+    state: str = Field(default="all", description="Issue state filter: 'open', 'closed', or 'all'")
+
+
+@define_tool(description="Search for related GitHub issues in this project's repository. Useful for finding duplicates, prior solutions, or related reports. Returns issue titles, numbers, states, and labels.")
+def search_github_issues(params: SearchGithubIssuesParams) -> str:
+    if not github_app_token or not repo_full_name:
+        return "Error: GitHub API not configured for this run."
+
+    if len(params.query) < 3:
+        return "Error: Search query must be at least 3 characters."
+
+    state_filter = params.state if params.state in ("open", "closed", "all") else "all"
+    search_q     = f"{params.query} repo:{repo_full_name} is:issue"
+
+    if state_filter != "all":
+        search_q += f" state:{state_filter}"
+
+    try:
+        req = urllib.request.Request(
+            f"https://api.github.com/search/issues?q={urllib.parse.quote(search_q)}&per_page={MAX_ISSUE_RESULTS}",
+            headers={
+                "Authorization": f"Bearer {github_app_token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "GitHub-AI-Support-Bot",
+            },
+        )
+
+        with urllib.request.urlopen(req, timeout=MAX_FETCH_TIMEOUT) as resp:
+            data = json.loads(resp.read())
+
+        items = data.get("items", [])
+
+        if not items:
+            return f"No issues found matching '{params.query}'"
+
+        lines = []
+
+        for item in items[:MAX_ISSUE_RESULTS]:
+            labels = ", ".join(l["name"] for l in item.get("labels", []))
+            label_str = f" [{labels}]" if labels else ""
+            lines.append(f"- #{item['number']} ({item['state']}){label_str}: {item['title']}")
+
+        return "\n".join(lines)
+    except urllib.error.HTTPError as e:
+        return f"Error: GitHub API returned HTTP {e.code}"
+    except Exception as e:
+        return f"Error searching issues: {e}"
+
+
+class GetGithubIssueParams(BaseModel):
+    issue_number: int = Field(description="The issue number to fetch, e.g. 123")
+
+
+@define_tool(description="Read a specific GitHub issue's full content and comments from this project's repository. Use this to check cross-referenced issues (e.g. when someone says 'same as #123') or to understand prior context.")
+def get_github_issue(params: GetGithubIssueParams) -> str:
+    if not github_app_token or not repo_full_name:
+        return "Error: GitHub API not configured for this run."
+
+    if params.issue_number < 1:
+        return "Error: Invalid issue number."
+
+    try:
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo_full_name}/issues/{params.issue_number}",
+            headers={
+                "Authorization": f"Bearer {github_app_token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "GitHub-AI-Support-Bot",
+            },
+        )
+
+        with urllib.request.urlopen(req, timeout=MAX_FETCH_TIMEOUT) as resp:
+            issue = json.loads(resp.read())
+
+        labels = ", ".join(l["name"] for l in issue.get("labels", []))
+        parts  = [
+            f"**#{issue['number']}: {issue['title']}** ({issue['state']})",
+            f"Author: @{issue['user']['login']}",
+        ]
+
+        if labels:
+            parts.append(f"Labels: {labels}")
+
+        parts.append(f"\n{issue.get('body', '(no body)') or '(no body)'}")
+
+        comments_req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo_full_name}/issues/{params.issue_number}/comments?per_page=20",
+            headers={
+                "Authorization": f"Bearer {github_app_token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "GitHub-AI-Support-Bot",
+            },
+        )
+
+        with urllib.request.urlopen(comments_req, timeout=MAX_FETCH_TIMEOUT) as resp:
+            comments = json.loads(resp.read())
+
+        for c in comments:
+            author = c["user"]["login"]
+            body   = c.get("body", "")
+
+            if len(body) > 2000:
+                body = body[:2000] + "... (truncated)"
+
+            parts.append(f"\n---\n**@{author}:**\n{body}")
+
+        result = "\n".join(parts)
+
+        if len(result) > MAX_FETCH_SIZE:
+            result = result[:MAX_FETCH_SIZE] + "\n... (truncated)"
+
+        return result
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return f"Error: Issue #{params.issue_number} not found."
+
+        return f"Error: GitHub API returned HTTP {e.code}"
+    except Exception as e:
+        return f"Error fetching issue: {e}"
+
+
 class StoreInsightParams(BaseModel):
     topic: str = Field(description="Topic category matching a skill directory name (e.g. 'channels', 'bosses', 'rules-scanning'), or 'general'")
     insight: str = Field(description="Specific, actionable insight in 1-3 sentences. Must be concrete enough to help resolve similar future issues.")
@@ -883,6 +1068,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         "streaming": False,
         "system_message": {"content": system_prompt},
         "tools": tools,
+        "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
         "infinite_sessions": {
             "enabled": True,
             "background_compaction_threshold": 0.80,
@@ -953,6 +1139,7 @@ def get_git_diff():
 
 async def run():
     global project_config, project_id_global, key_files, writable_prefixes
+    global github_app_token, repo_full_name
 
     pid = os.environ.get("PROJECT_ID")
 
@@ -965,6 +1152,9 @@ async def run():
 
     key_files         = [f"{MAIN_DIR}/{kf}" for kf in project_config.get("key_files", [])]
     writable_prefixes = tuple(project_config.get("writable_prefixes", []))
+
+    github_app_token = os.environ.get("GITHUB_APP_TOKEN", "")
+    repo_full_name   = os.environ.get("GITHUB_REPOSITORY", "")
 
     skills = auto_discover_skills(pid)
     print(f"Loaded config for {name}: {len(key_files)} key files, {len(writable_prefixes)} writable prefixes, {len(skills)} skills")
@@ -1059,7 +1249,7 @@ Respond to the latest comment. If it's just a thank-you with no question, respon
 
 Read the most relevant files above, then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
 
-    all_tools = [read_codebase_file, search_codebase, list_directory, write_codebase_file, patch_codebase_file]
+    all_tools = [read_codebase_file, search_codebase, list_directory, write_codebase_file, patch_codebase_file, fetch_url, search_github_issues, get_github_issue]
     models    = ["claude-opus-4.6"]
 
     cli_path = resolve_cli_path()
