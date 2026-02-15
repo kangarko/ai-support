@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "Proxy-level commands (e.g. LiteBans `/ban` on Velocity) never reach backend servers, so Bukkit-side `rules/command.rs` cannot match them. Proxy command rules require the proxy module's own `rules/command.rs` file, which uses the same `match` regex syntax and inherits all `ProxyOperator` actions (`then deny`, `then warn`, `then proxy`, etc.).",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3422
   }
 ]
