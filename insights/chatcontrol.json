@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "When using Image_Head (or Image_File/Image_Url) in a format part, the number of `Message` lines should ideally match the `Image_Height` (default 8). Lines beyond the image height appear below the image without the pixel-art prefix. Users must also set `Performance.Async_Motd: true` in settings.yml when using Image_Head in the MOTD format, since `drawFromHead` makes a blocking HTTP call to the Avatar API (minotar.net).",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3430
   }
 ]
