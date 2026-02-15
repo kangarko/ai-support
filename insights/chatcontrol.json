@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "When the last player quits, `then discord`, `then console`, `then log`, and `then write` operators in quit messages are silently skipped because PlayerMessage.filter() iterates over online players to execute operators \u2014 and that list is empty after the last player leaves. A fix was proposed in PR #3462 to add a fallback that executes sender-only operators (discord, console, log, notify, write) when no receivers were processed.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3459
   }
 ]
