@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "proxy-sync",
+    "insight": "The `/forward` command between backend servers (e.g., auth\u2192survival) silently fails when the target server has no online players, because the proxy relay skips empty servers (`isEmpty()` check). Unlike mute sync which queues for later delivery, FORWARD_COMMAND messages are dropped with no error feedback. Additionally, `Enable_Forward_Command` in VelocityControl/BungeeControl defaults to `false` and must be explicitly enabled.",
+    "related_skill": "proxy-sync",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3412
   }
 ]
