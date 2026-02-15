@@ -49,8 +49,14 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ inputs.comment_body }}
         run: |
           if [ "${{ inputs.event_name }}" = "issues" ]; then
+            echo "should_respond=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if echo "$COMMENT_BODY" | grep -qi "@kangobot"; then
+            echo "Bot was mentioned — responding"
             echo "should_respond=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
