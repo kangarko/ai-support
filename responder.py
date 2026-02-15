@@ -49,6 +49,7 @@ ALLOWED_FETCH_DOMAINS = frozenset({
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
     "read", "grep", "glob", "ls",
+    "web_fetch",
 ]
 
 github_app_token = ""
