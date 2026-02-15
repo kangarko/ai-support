@@ -211,10 +211,54 @@ jobs:
             echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Create Foundation fix PR if changes were proposed
+        id: foundation_fix_pr
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          ISSUE_NUM: ${{ inputs.issue_number }}
+          ISSUE_TITLE: ${{ inputs.issue_title }}
+          SOURCE_REPO: ${{ github.repository }}
+        run: |
+          cd foundation
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No Foundation changes proposed"
+            exit 0
+          fi
+
+          REPO_SHORT="${SOURCE_REPO##*/}"
+          BRANCH="fix/${REPO_SHORT}-issue-${ISSUE_NUM}"
+
+          git config user.name "kangobot[bot]"
+          git config user.email "2869176+kangobot[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -m "Proposed fix for ${SOURCE_REPO}#${ISSUE_NUM}"
+          git push -f origin "$BRANCH"
+
+          EXISTING_PR=$(gh pr list --repo kangarko/foundation --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null || true)
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "pr_url=$EXISTING_PR" >> "$GITHUB_OUTPUT"
+          else
+            PR_URL=$(gh pr create \
+              --repo kangarko/foundation \
+              --draft \
+              --title "Fix ${SOURCE_REPO}#${ISSUE_NUM}: ${ISSUE_TITLE}" \
+              --body-file ../pr_description_foundation.md \
+              --head "$BRANCH")
+            echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Append PR link to response
         if: steps.fix_pr.outputs.pr_url && hashFiles('response.md') != ''
         run: |
           printf '\n\n---\n:memo: **A draft fix has been proposed:** %s' "${{ steps.fix_pr.outputs.pr_url }}" >> response.md
+
+      - name: Append Foundation PR link to response
+        if: steps.foundation_fix_pr.outputs.pr_url && hashFiles('response.md') != ''
+        run: |
+          printf '\n:wrench: **Foundation draft fix:** %s' "${{ steps.foundation_fix_pr.outputs.pr_url }}" >> response.md
 
       - name: Post response comment
         if: "!cancelled() && hashFiles('response.md') != ''"

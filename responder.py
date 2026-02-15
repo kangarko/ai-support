@@ -71,6 +71,13 @@ WRITABLE_EXTENSIONS = frozenset({".java", ".yml", ".yaml", ".rs", ".json"})
 BLOCKED_FILENAMES   = frozenset({"pom.xml", "build.xml"})
 ALLOWED_ROOTS       = (MAIN_DIR, FOUNDATION_DIR, AI_SUPPORT_DIR)
 
+FOUNDATION_WRITABLE_PREFIXES = (
+    "foundation-bukkit/src/main/",
+    "foundation-core/src/main/",
+    "foundation-bungee/src/main/",
+    "foundation-velocity/src/main/",
+)
+
 project_config    = {}
 project_id_global = ""
 key_files         = []
@@ -240,9 +247,9 @@ def build_system_prompt(cfg, skills):
         "- Bug fixes (single-file or multi-file Java fixes)",
         "- New integrations (third-party plugin hooks, party providers, placeholder expansions)",
         "- Small-to-medium feature additions that fit naturally into the existing architecture",
+        "- Foundation framework fixes when the bug originates in Foundation code (org.mineacademy.fo.*) — use paths starting with 'foundation/' instead of 'main/'. A separate draft PR will be created for the Foundation repository",
         "",
         "**Do NOT:**",
-        "- Modify Foundation code (separate repository)",
         "- Rewrite large unrelated sections of code",
         "- Make speculative or uncertain changes",
         "- Touch build files (pom.xml, build.xml)",
@@ -674,6 +681,16 @@ def validate_path(path_str):
     return None
 
 
+def _resolve_write_target(path_str):
+    if path_str.startswith(MAIN_DIR + "/"):
+        return MAIN_DIR, path_str[len(MAIN_DIR) + 1:], writable_prefixes
+
+    if path_str.startswith(FOUNDATION_DIR + "/"):
+        return FOUNDATION_DIR, path_str[len(FOUNDATION_DIR) + 1:], FOUNDATION_WRITABLE_PREFIXES
+
+    return None
+
+
 class ReadFileParams(BaseModel):
     path: str = Field(description="Relative file path, e.g. 'main/src/main/resources/settings.yml' or 'ai-support/projects/.../SKILL.md'")
 
@@ -779,19 +796,21 @@ def list_directory(params: ListDirParams) -> str:
 
 
 class WriteFileParams(BaseModel):
-    path: str = Field(description="Relative file path within main/, e.g. 'main/src/main/java/org/mineacademy/MyClass.java'. Must be a NEW file that does not exist yet.")
+    path: str = Field(description="Relative file path within main/ or foundation/, e.g. 'main/src/main/java/org/mineacademy/MyClass.java' or 'foundation/foundation-core/src/main/java/...'. Must be a NEW file that does not exist yet.")
     content: str = Field(description="The complete content for the new file")
     reason: str = Field(description="Brief explanation of why this new file is needed")
 
 
-@define_tool(description="Create a NEW source/config file in the project repository. Only for files that don't exist yet. For editing existing files, use patch_codebase_file instead. Path must start with 'main/' and be under a src/main/ directory. Cannot modify Foundation, build files, or .github/. Changes are submitted as a draft PR for human review.")
+@define_tool(description="Create a NEW source/config file in the project or Foundation repository. Only for files that don't exist yet. For editing existing files, use patch_codebase_file instead. Path must start with 'main/' or 'foundation/' and be under a src/main/ directory. Cannot modify build files or .github/. Changes are submitted as a draft PR for human review.")
 def write_codebase_file(params: WriteFileParams) -> str:
-    if not params.path.startswith(MAIN_DIR + "/"):
-        return "Error: Can only write files in the main/ repository."
+    target = _resolve_write_target(params.path)
 
-    relative = params.path[len(MAIN_DIR) + 1:]
+    if not target:
+        return "Error: Path must start with 'main/' or 'foundation/'."
 
-    if not any(relative.startswith(prefix) for prefix in writable_prefixes):
+    repo_dir, relative, prefixes = target
+
+    if not any(relative.startswith(prefix) for prefix in prefixes):
         return f"Error: Can only write to source/resource directories under src/main/. Got: {relative}"
 
     filename = Path(params.path).name
@@ -829,20 +848,22 @@ def write_codebase_file(params: WriteFileParams) -> str:
 
 
 class PatchFileParams(BaseModel):
-    path: str = Field(description="Relative file path within main/, e.g. 'main/src/main/resources/settings.yml'")
+    path: str = Field(description="Relative file path within main/ or foundation/, e.g. 'main/src/main/resources/settings.yml' or 'foundation/foundation-core/src/main/java/...'")
     old_text: str = Field(description="The exact text to find in the file (must match uniquely). Include 2-3 lines of surrounding context to ensure a unique match.")
     new_text: str = Field(description="The replacement text that will replace old_text")
     reason: str = Field(description="Brief explanation of what this change does")
 
 
-@define_tool(description="Edit an existing source/config file by replacing a specific text snippet. Use this instead of write_codebase_file for all edits to existing files. Provide the exact old text and the new text. The old_text must appear exactly once in the file. Include 2-3 lines of context around the change to ensure uniqueness.")
+@define_tool(description="Edit an existing source/config file in the project or Foundation repository by replacing a specific text snippet. Use this instead of write_codebase_file for all edits to existing files. Path must start with 'main/' or 'foundation/'. The old_text must appear exactly once in the file. Include 2-3 lines of context around the change to ensure uniqueness.")
 def patch_codebase_file(params: PatchFileParams) -> str:
-    if not params.path.startswith(MAIN_DIR + "/"):
-        return "Error: Can only edit files in the main/ repository."
+    target = _resolve_write_target(params.path)
 
-    relative = params.path[len(MAIN_DIR) + 1:]
+    if not target:
+        return "Error: Path must start with 'main/' or 'foundation/'."
 
-    if not any(relative.startswith(prefix) for prefix in writable_prefixes):
+    repo_dir, relative, prefixes = target
+
+    if not any(relative.startswith(prefix) for prefix in prefixes):
         return f"Error: Can only edit source/resource directories under src/main/. Got: {relative}"
 
     filename = Path(params.path).name
@@ -1133,29 +1154,34 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
 
 
 def get_git_diff():
-    try:
-        subprocess.run(
-            ["git", "-C", MAIN_DIR, "add", "-A"],
-            capture_output=True, timeout=10,
-        )
-        result = subprocess.run(
-            ["git", "-C", MAIN_DIR, "diff", "--cached"],
-            capture_output=True, text=True, timeout=30,
-        )
-        subprocess.run(
-            ["git", "-C", MAIN_DIR, "reset", "--quiet"],
-            capture_output=True, timeout=10,
-        )
+    diffs = []
 
-        diff = result.stdout.strip()
+    for repo_dir in [MAIN_DIR, FOUNDATION_DIR]:
+        try:
+            subprocess.run(
+                ["git", "-C", repo_dir, "add", "-A"],
+                capture_output=True, timeout=10,
+            )
+            result = subprocess.run(
+                ["git", "-C", repo_dir, "diff", "--cached"],
+                capture_output=True, text=True, timeout=30,
+            )
+            subprocess.run(
+                ["git", "-C", repo_dir, "reset", "--quiet"],
+                capture_output=True, timeout=10,
+            )
 
-        if len(diff) > MAX_DIFF_SIZE:
-            diff = diff[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
+            if result.stdout.strip():
+                diffs.append(result.stdout.strip())
+        except Exception as e:
+            print(f"Warning: git diff failed for {repo_dir}: {e}")
 
-        return diff
-    except Exception as e:
-        print(f"Warning: git diff failed: {e}")
-        return ""
+    diff = "\n".join(diffs)
+
+    if len(diff) > MAX_DIFF_SIZE:
+        diff = diff[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
+
+    return diff
 
 
 TRIVIAL_REPLY_PATTERN = re.compile(
@@ -1497,7 +1523,7 @@ async def run():
     system_prompt = build_system_prompt(project_config, skills)
 
     all_tools = [read_codebase_file, search_codebase, list_directory, write_codebase_file, patch_codebase_file, fetch_url, search_github_issues, get_github_issue]
-    models    = ["claude-opus-4.6"]
+    models    = ["claude-opus-4.6-fast", "claude-opus-4.6"]
 
     cli_path = resolve_cli_path()
     print(f"Using Copilot CLI: {cli_path}")
@@ -1666,18 +1692,29 @@ Read the 1-2 most relevant skill files to verify your insight isn't already docu
                 print("Phase 3 — no new insights")
 
         if written_files:
-            pr_lines = [
-                "Automated fix proposed by AI analysis of the linked issue.\n",
-                "## Changes\n",
-            ]
+            main_files       = [wf for wf in written_files if wf["path"].startswith(MAIN_DIR + "/")]
+            foundation_files = [wf for wf in written_files if wf["path"].startswith(FOUNDATION_DIR + "/")]
 
-            for wf in written_files:
-                prefix = "**New:** " if wf.get("new") else ""
-                pr_lines.append(f"- {prefix}`{wf['path']}`: {wf['reason']}")
+            for files, filename in [
+                (main_files, "pr_description.md"),
+                (foundation_files, "pr_description_foundation.md"),
+            ]:
+                if not files:
+                    continue
 
-            pr_lines.append("\n**This is a draft PR — human review required before merging.**")
-            Path("pr_description.md").write_text("\n".join(pr_lines))
-            print("PR description written")
+                pr_lines = [
+                    "Automated fix proposed by AI analysis of the linked issue.\n",
+                    "## Changes\n",
+                ]
+
+                for wf in files:
+                    prefix = "**New:** " if wf.get("new") else ""
+                    pr_lines.append(f"- {prefix}`{wf['path']}`: {wf['reason']}")
+
+                pr_lines.append("\n**This is a draft PR — human review required before merging.**")
+                Path(filename).write_text("\n".join(pr_lines))
+
+            print("PR description(s) written")
 
         if is_reply and text.strip().upper().startswith("SKIP"):
             print("Bot decided to skip — no response needed")
