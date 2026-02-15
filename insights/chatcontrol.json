@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "channels",
+    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3465
+  }
+]
