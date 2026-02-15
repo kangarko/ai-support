@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "Death messages support `{killer_item}` (material name with hover tooltip) and `{killer_item_name}` (custom display name from anvil, falls back to material name). Item display names from anvils can contain raw `&`/`\u00a7` color codes that get processed by the chat formatter \u2014 the `killer_item_name` variable strips these via `CompChatColor.stripColorCodes()` to prevent color injection.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3389
   }
 ]
