@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "variables",
+    "insight": "Foundation's `Variables.java` has two parallel hex-color conversion paths: `getValueAsString()` (legacy/string) and `replaceComponent0()` (component). When adding new hex format handling, both paths must be updated \u2014 the component path was previously missing `HEX_BRACKET_PATTERN` support.",
+    "related_skill": "variables",
+    "scope": "global",
+    "date": "2026-02-15",
+    "issue": 3418
+  }
+]
