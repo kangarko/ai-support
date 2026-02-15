@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "Boss has two separate health display systems: `Fighting.Health_Bar` in settings.yml is a global action bar (bottom of screen) for all bosses, while `Boss_Bar` in each boss's YAML is a per-boss Minecraft BossBar (top of screen) with Enabled, Color, Style, Title, and Radius keys. Boss_Bar is disabled by default and managed by `BossBossBarManager` using Foundation's Adventure BossBar API.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 1449
+  }
+]
