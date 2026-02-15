@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "Packet rules (RuleType.PACKET, `rules/packet.rs`) intercept outgoing chat packets from other plugins. They require ProtocolLib + `packet` in `Rules.Apply_On`. They catch ALL outgoing chat including ChatControl's own output, so match patterns must be specific to target only external plugin messages.",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3417
   }
 ]
