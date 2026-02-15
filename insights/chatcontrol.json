@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "variables",
+    "insight": "ChatControl has two sets of toggle placeholders: `%chatcontrol_is_ignoring_<type>%` (true = disabled) and `%chatcontrol_toggle_<type>%` (true = enabled). Both support `player_` prefix variants and short aliases like `pm`, `me`, `soundnotify` via `ToggleType.fromKey()`.",
+    "related_skill": "variables",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3427
   }
 ]
