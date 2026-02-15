@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "books-announcements",
+    "insight": "Book spy's \"click to read\" feature requires `book` to be listed in `Log.Apply_On` in settings.yml (default is empty `[]`). Without it, books are never saved to the database, so clicking the spy link fails with \"book not found.\" This is the most common cause of book spy not working \u2014 users enable `Spy.Apply_On: [book]` but forget the separate `Log.Apply_On` setting.",
+    "related_skill": "books-announcements",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3375
   }
 ]
