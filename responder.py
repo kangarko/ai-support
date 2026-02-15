@@ -34,18 +34,6 @@ MAX_CONVERSATION_SIZE = 50_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
 
-ALLOWED_FETCH_DOMAINS = frozenset({
-    "github.com", "raw.githubusercontent.com",
-    "spigotmc.org", "www.spigotmc.org", "hub.spigotmc.org",
-    "papermc.io", "docs.papermc.io", "jd.papermc.io",
-    "wiki.vg", "minecraft.wiki", "minecraft.fandom.com",
-    "bukkit.org", "dev.bukkit.org",
-    "jitpack.io",
-    "docs.oracle.com",
-    "builtbybit.com",
-    "mineacademy.org", "docs.mineacademy.org",
-})
-
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
     "read", "grep", "glob", "ls",
@@ -880,21 +868,15 @@ def patch_codebase_file(params: PatchFileParams) -> str:
 
 
 class FetchUrlParams(BaseModel):
-    url: str = Field(description="The URL to fetch content from. Must be from an allowed domain (GitHub, SpigotMC, PaperMC docs, Minecraft wiki, etc.)")
+    url: str = Field(description="The URL to fetch content from")
 
 
-@define_tool(description="Fetch content from a URL and return it as text. Use this to read documentation pages, wiki articles, GitHub READMEs, or links referenced in issues. Only allowed domains can be fetched (GitHub, SpigotMC, PaperMC, Minecraft wiki, Bukkit, Oracle docs).")
+@define_tool(description="Fetch content from a URL and return it as text. Use this to read documentation pages, wiki articles, GitHub READMEs, or links referenced in issues.")
 def fetch_url(params: FetchUrlParams) -> str:
     url = params.url.strip()
 
     if not url.startswith(("https://", "http://")):
         return "Error: URL must start with https:// or http://"
-
-    parsed = urllib.parse.urlparse(url)
-    domain = parsed.hostname or ""
-
-    if domain not in ALLOWED_FETCH_DOMAINS:
-        return f"Error: Domain '{domain}' is not allowed. Allowed domains: {', '.join(sorted(ALLOWED_FETCH_DOMAINS))}"
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (GitHub-AI-Support-Bot)"})
