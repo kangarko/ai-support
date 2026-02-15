@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "commands",
+    "insight": "Underscores in boss or spawn rule names break ALL PlaceholderAPI placeholders because SimpleExpansion splits params by `_`, producing wrong argument counts. Names must use camelCase (e.g., VindicatorJohnny); underscores are now blocked in CreatePrompt and a startup warning is logged for existing underscore names.",
+    "related_skill": "commands",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 1464
+  }
+]
