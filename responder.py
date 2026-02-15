@@ -606,7 +606,7 @@ def extract_text(value):
     return "\n".join(parts).strip()
 
 
-def extract_last_response(messages):
+def extract_last_response(messages, min_length=10):
     msg_list = list(messages)
 
     for i, msg in enumerate(msg_list):
@@ -628,7 +628,7 @@ def extract_last_response(messages):
 
         text = extract_text(read_field(data, "content"))
 
-        if text and len(text) > 10:
+        if text and len(text) > min_length:
             return text
 
     for msg in reversed(msg_list):
@@ -639,7 +639,7 @@ def extract_last_response(messages):
 
         text = extract_text(read_field(msg, "content"))
 
-        if text and len(text) > 10:
+        if text and len(text) > min_length:
             return text
 
     return ""
@@ -1071,7 +1071,7 @@ def store_insight(params: StoreInsightParams) -> str:
     return f"Insight stored for topic '{params.topic}' (scope: {params.scope})."
 
 
-async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600):
+async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10):
     session = await client.create_session({
         "model": model,
         "streaming": False,
@@ -1120,7 +1120,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         messages  = await session.get_messages()
         msg_list  = list(messages)
         print(f"  got {len(msg_list)} messages from session history")
-        candidate = extract_last_response(msg_list)
+        candidate = extract_last_response(msg_list, min_length=min_length)
 
         if not candidate:
             raise RuntimeError(
@@ -1173,10 +1173,12 @@ def is_trivial_reply(text):
     return len(short) < 80 and "?" not in short and TRIVIAL_REPLY_PATTERN.match(short)
 
 
-async def should_respond_to_reply(client, model, title, comment, conversation_snippet):
+async def should_respond_to_reply(client, model, title, comment, comment_author, conversation_snippet):
     prompt = f"""Decide whether a support bot should respond to this follow-up comment on a GitHub issue.
 
 **Issue:** {title}
+
+**Comment author:** {comment_author}
 
 **Conversation so far:**
 {conversation_snippet}
@@ -1184,12 +1186,15 @@ async def should_respond_to_reply(client, model, title, comment, conversation_sn
 **New comment to evaluate:**
 {comment}
 
-Respond with exactly YES if the comment asks a question, reports a new problem, requests clarification, or needs a substantive reply.
-Respond with exactly NO if it is just a thank-you, acknowledgment, or closing remark with no question.
+Respond with exactly YES if the comment asks a question, reports a new problem, requests clarification, or needs a substantive reply from the bot.
+Respond with exactly NO if:
+- It is a thank-you, acknowledgment, or closing remark with no question
+- The comment is a maintainer or developer talking to another team member (e.g. assigning work, internal discussion)
+- The comment is directed at a specific person (not the bot) and does not ask for technical help
 Respond with only YES or NO."""
 
     try:
-        result = await run_agent_session(client, model, "You are a triage classifier. Respond with only YES or NO.", prompt, [], timeout=30)
+        result = await run_agent_session(client, model, "You are a triage classifier. Respond with only YES or NO.", prompt, [], timeout=30, min_length=1)
         answer = result.strip().upper()
         print(f"Triage — model says: {answer}")
         return answer.startswith("YES")
@@ -1511,7 +1516,7 @@ async def run():
                 for m in conversation
             ) if conversation else "(no prior messages)"
 
-            if not await should_respond_to_reply(client, models[0], title, comment_body, conversation_snippet):
+            if not await should_respond_to_reply(client, models[0], title, comment_body, comment_author, conversation_snippet):
                 print("Triage: bot decided not to respond")
                 await client.stop()
                 return
