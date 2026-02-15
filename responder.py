@@ -21,10 +21,10 @@ MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
 AI_SUPPORT_DIR = "ai-support"
 
-MAX_FILE_SIZE         = 50_000
+MAX_FILE_SIZE         = 80_000
 MAX_SEARCH_FILES      = 20
 MAX_SEARCH_RESULTS    = 50
-MAX_DIFF_SIZE         = 30_000
+MAX_DIFF_SIZE         = 60_000
 MAX_FETCH_SIZE        = 100_000
 MAX_FETCH_TIMEOUT     = 15
 MAX_ISSUE_RESULTS     = 10
@@ -1023,8 +1023,8 @@ def get_github_issue(params: GetGithubIssueParams) -> str:
             author = c["user"]["login"]
             body   = c.get("body", "")
 
-            if len(body) > 2000:
-                body = body[:2000] + "... (truncated)"
+            if len(body) > 5000:
+                body = body[:5000] + "... (truncated)"
 
             parts.append(f"\n---\n**@{author}:**\n{body}")
 
@@ -1237,7 +1237,7 @@ async def run_research_phase(client, model, cfg, title, issue_text, label_line,
                              skills, hints_text, key_files_text,
                              stacktrace_classes, class_files, has_foundation):
     name          = cfg["name"]
-    issue_context = f"**Title:** {title}{label_line}\n\n{issue_text[:10000]}"
+    issue_context = f"**Title:** {title}{label_line}\n\n{issue_text[:50000]}"
     tasks         = []
 
     skill_list = "\n".join(
@@ -1578,7 +1578,7 @@ Read the pre-researched findings and relevant files above, then give a short, di
                 review_prompt = f"""Review these proposed changes and the response for a {name} GitHub issue.
 
 ## Response That Will Be Posted
-{text[:5000]}
+{text[:20000]}
 
 ## Changed Files
 {changed_summary}
@@ -1615,10 +1615,10 @@ If you find problems, fix them with patch_codebase_file (for existing files) or 
 
 **Issue #{issue_number}: {title}**
 
-{body[:5000]}
+{body[:20000]}
 
 **Response Given:**
-{text[:5000]}
+{text[:20000]}
 
 {insights_text or "No existing insights yet."}
 
