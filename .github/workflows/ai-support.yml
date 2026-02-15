@@ -55,7 +55,7 @@ jobs:
             exit 0
           fi
           BOT_COMMENTED=$(gh api "/repos/${{ github.repository }}/issues/${{ inputs.issue_number }}/comments" \
-            --jq '[.[] | select(.user.login == "mineacademy[bot]" or .user.login == "github-actions[bot]")] | length')
+            --jq '[.[] | select(.user.login == "kangobot[bot]" or .user.login == "github-actions[bot]")] | length')
           if [ "$BOT_COMMENTED" -gt "0" ]; then
             echo "should_respond=true" >> "$GITHUB_OUTPUT"
           else
@@ -147,8 +147,8 @@ jobs:
             echo "No insight changes"
             exit 0
           fi
-          git config user.name "mineacademy[bot]"
-          git config user.email "2869176+mineacademy[bot]@users.noreply.github.com"
+          git config user.name "kangobot[bot]"
+          git config user.email "2869176+kangobot[bot]@users.noreply.github.com"
           git commit -m "Learn from ${{ github.repository }}#${ISSUE_NUM}"
           git pull --rebase origin main 2>/dev/null || true
           git push origin main
@@ -172,8 +172,8 @@ jobs:
 
           BRANCH="fix/issue-${ISSUE_NUM}"
 
-          git config user.name "mineacademy[bot]"
-          git config user.email "2869176+mineacademy[bot]@users.noreply.github.com"
+          git config user.name "kangobot[bot]"
+          git config user.email "2869176+kangobot[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git commit -m "Proposed fix for #${ISSUE_NUM}"
           git push -f origin "$BRANCH"
