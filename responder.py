@@ -1087,7 +1087,13 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
 
         session.on(on_event)
         await session.send({"prompt": user_prompt})
-        await asyncio.wait_for(done.wait(), timeout=timeout)
+
+        try:
+            await asyncio.wait_for(done.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            raise RuntimeError(
+                f"Session timed out after {timeout}s. event_errors={event_errors[:3]}"
+            )
 
         messages  = await session.get_messages()
         msg_list  = list(messages)
