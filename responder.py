@@ -1158,6 +1158,46 @@ def get_git_diff():
         return ""
 
 
+TRIVIAL_REPLY_PATTERN = re.compile(
+    r"^(thanks?|thx|ty|thank\s?you|perfect|awesome|great|nice|neat|"
+    r"works?\s*(now|fine|perfectly|great)?|solved|fixed|got\s*it|cheers|"
+    r"appreciate\s*it|np|cool|ok|okay|noted|understood|amazing|brilliant|"
+    r"this\s*(works?|helped|fixed\s*it)|you'?re\s*(the\s*best|awesome|amazing)|"
+    r"love\s*it|10/10|yep|yup|done|all\s*good|no\s*(more\s*)?issues?)[.!]*$",
+    re.IGNORECASE,
+)
+
+
+def is_trivial_reply(text):
+    short = text.strip()
+    return len(short) < 80 and "?" not in short and TRIVIAL_REPLY_PATTERN.match(short)
+
+
+async def should_respond_to_reply(client, model, title, comment, conversation_snippet):
+    prompt = f"""Decide whether a support bot should respond to this follow-up comment on a GitHub issue.
+
+**Issue:** {title}
+
+**Recent conversation (last 3 messages):**
+{conversation_snippet}
+
+**New comment to evaluate:**
+{comment[:500]}
+
+Respond with exactly YES if the comment asks a question, reports a new problem, requests clarification, or needs a substantive reply.
+Respond with exactly NO if it is just a thank-you, acknowledgment, or closing remark with no question.
+Respond with only YES or NO."""
+
+    try:
+        result = await run_agent_session(client, model, "You are a triage classifier. Respond with only YES or NO.", prompt, [], timeout=30)
+        answer = result.strip().upper()
+        print(f"Triage — model says: {answer}")
+        return answer.startswith("YES")
+    except Exception as e:
+        print(f"Triage — failed ({e}), defaulting to respond")
+        return True
+
+
 async def try_models(client, models, system, prompt, tools, phase_label, timeout=3600):
     for model in models:
         print(f"{phase_label} — trying model: {model}")
@@ -1405,6 +1445,10 @@ async def run():
 
     if is_reply:
         print(f"Reply on issue: {title} (by @{comment_author})")
+
+        if is_trivial_reply(comment_body):
+            print(f"Pre-filter: trivial reply detected, skipping")
+            return
     else:
         print(f"New issue: {title}")
 
@@ -1460,6 +1504,19 @@ async def run():
     await client.start()
 
     try:
+        if is_reply:
+            conversation      = load_conversation()
+            recent_messages   = conversation[-3:] if conversation else []
+            conversation_snippet = "\n".join(
+                f"**{m.get('author', 'unknown')}:** {m.get('body', '')[:300]}"
+                for m in recent_messages
+            ) if recent_messages else "(no prior messages)"
+
+            if not await should_respond_to_reply(client, models[0], title, comment_body, conversation_snippet):
+                print("Triage: bot decided not to respond")
+                await client.stop()
+                return
+
         has_foundation    = has_foundation_stacktrace(all_text)
         research_findings = await run_research_phase(
             client, models[0], project_config, title, all_text, label_line,
@@ -1469,8 +1526,10 @@ async def run():
         research_section = f"\n{research_findings}" if research_findings else ""
 
         if is_reply:
-            conversation = load_conversation()
-            thread       = format_conversation(body, conversation)
+            if not conversation:
+                conversation = load_conversation()
+
+            thread = format_conversation(body, conversation)
 
             user_prompt = f"""A user posted a follow-up comment on this issue. Respond to their latest comment.
 
@@ -1487,7 +1546,7 @@ async def run():
 {insights_text}
 {research_section}
 
-Respond to the latest comment. If it's just a thank-you with no question, respond with exactly SKIP and nothing else."""
+Respond to the latest comment."""
         else:
             user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
 
