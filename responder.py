@@ -1178,11 +1178,11 @@ async def should_respond_to_reply(client, model, title, comment, conversation_sn
 
 **Issue:** {title}
 
-**Recent conversation (last 3 messages):**
+**Conversation so far:**
 {conversation_snippet}
 
 **New comment to evaluate:**
-{comment[:500]}
+{comment}
 
 Respond with exactly YES if the comment asks a question, reports a new problem, requests clarification, or needs a substantive reply.
 Respond with exactly NO if it is just a thank-you, acknowledgment, or closing remark with no question.
@@ -1506,11 +1506,10 @@ async def run():
     try:
         if is_reply:
             conversation      = load_conversation()
-            recent_messages   = conversation[-3:] if conversation else []
             conversation_snippet = "\n".join(
-                f"**{m.get('author', 'unknown')}:** {m.get('body', '')[:300]}"
-                for m in recent_messages
-            ) if recent_messages else "(no prior messages)"
+                f"**{m.get('author', 'unknown')}:** {m.get('body', '')}"
+                for m in conversation
+            ) if conversation else "(no prior messages)"
 
             if not await should_respond_to_reply(client, models[0], title, comment_body, conversation_snippet):
                 print("Triage: bot decided not to respond")
