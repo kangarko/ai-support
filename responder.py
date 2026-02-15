@@ -1319,6 +1319,38 @@ If you find problems, fix them with patch_codebase_file (for existing files) or 
                 else:
                     print("Warning: Phase 2 self-review failed for all models — skipping review")
 
+            print("Phase 2b — ultrathink deep scan")
+            diff_2b = get_git_diff()
+
+            if diff_2b:
+                if len(diff_2b) > MAX_DIFF_SIZE:
+                    diff_2b = diff_2b[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
+
+                ultrathink_prompt = f"""Ultrathink like a senior engineer reviewing proposed changes to {name}.
+
+## Current Diff
+```diff
+{diff_2b}
+```
+
+Scan for DRY violations, broken code, hidden bugs, overengineering, edge cases, multiple functions or components doing the same thing. Also, scan your last code changes not being adopted elsewhere in the app and fix all. Don't hide errors, if you get an unexpected response, print the raw response.
+
+Read each changed file in full context. If you find problems, fix them with patch_codebase_file. If everything is clean, respond with "LGTM"."""
+
+                for model in models:
+                    print(f"Phase 2b — trying model: {model}")
+
+                    try:
+                        ultra_text = await run_agent_session(client, model, review_system, ultrathink_prompt, all_tools)
+                        print(f"Phase 2b — complete: {ultra_text[:200]}")
+                        break
+                    except Exception as e:
+                        print(f"Phase 2b — {model} failed: {e}")
+                else:
+                    print("Warning: Phase 2b ultrathink failed for all models — skipping")
+            else:
+                print("Phase 2b — no diff to review")
+
         if not (is_reply and text.strip().upper().startswith("SKIP")):
             print("Phase 3 — extracting insights")
 
