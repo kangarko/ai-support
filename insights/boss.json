@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "When new entity types are added as valid Boss types in `getValidEntities()` (like MANNEQUIN), also check `canHaveEquipment()` in Boss.java \u2014 it only allows Monster subclasses, PLAYER, HORSE, and ARMOR_STAND. Non-Monster LivingEntity types (e.g., MANNEQUIN) must be explicitly added or the equipment GUI shows \"This Boss type does not support equipment.\" The underlying spawn-time equipment application works for any LivingEntity regardless, so manual YAML edits would work even without the GUI fix.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 1458
+  }
+]
