@@ -33,6 +33,8 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 50_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
+RESEARCH_TIMEOUT      = 600
+MAX_RESEARCH_WORDS    = 1500
 
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
@@ -347,6 +349,26 @@ def extract_stacktrace_classes(body):
             classes.add(class_name)
 
     return list(classes)
+
+
+def extract_urls(text):
+    urls     = re.findall(r"https?://[^\s\)>\"']+", text)
+    filtered = []
+
+    for url in urls:
+        if re.match(r"https?://github\.com/[\w-]+/[\w-]+/(issues|pull)/\d+", url):
+            continue
+
+        if re.match(r".*\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$", url, re.IGNORECASE):
+            continue
+
+        filtered.append(url)
+
+    return filtered[:5]
+
+
+def has_foundation_stacktrace(text):
+    return bool(re.search(r"org\.mineacademy\.fo\.", text))
 
 
 def extract_mentioned_files(body):
@@ -1150,6 +1172,200 @@ async def try_models(client, models, system, prompt, tools, phase_label, timeout
     return None
 
 
+def build_research_system(name, role):
+    return f"""You are a research agent for {name}, a Minecraft plugin. Your role: {role}
+
+## Rules
+- You have READ-ONLY access to the codebase. Explore thoroughly using your tools.
+- When done, write a focused summary of your findings in {MAX_RESEARCH_WORDS} words or fewer.
+- Include specific file paths, line numbers, config keys, and short code snippets that are relevant.
+- If you find nothing relevant, say so briefly.
+- Do NOT suggest fixes or write code — just report what you found."""
+
+
+async def run_single_research(client, model, system, prompt, tools, label):
+    try:
+        result = await run_agent_session(client, model, system, prompt, tools, timeout=RESEARCH_TIMEOUT)
+        print(f"  Research [{label}] — done ({len(result)} chars)")
+        return result
+    except Exception as e:
+        print(f"  Research [{label}] — failed: {e}")
+        return ""
+
+
+async def run_research_phase(client, model, cfg, title, issue_text, label_line,
+                             skills, hints_text, key_files_text,
+                             stacktrace_classes, class_files, has_foundation):
+    name          = cfg["name"]
+    issue_context = f"**Title:** {title}{label_line}\n\n{issue_text[:10000]}"
+    tasks         = []
+
+    skill_list = "\n".join(
+        f"- {AI_SUPPORT_DIR}/projects/{project_id_global}/skills/{s['dir']}/SKILL.md — {s['description']}"
+        for s in skills
+    )
+
+    tasks.append({
+        "label":  "Skill Reader",
+        "system": build_research_system(name,
+            "Read the most relevant skill files and extract architecture, "
+            "troubleshooting steps, and common issues related to this GitHub issue."),
+        "prompt": f"""Research this issue by reading skill files.
+
+{issue_context}
+
+## Available Skill Files
+{skill_list}
+
+Read the 1-3 most relevant skill files. Extract:
+- Architecture details relevant to the issue
+- Known troubleshooting steps that apply
+- Common issues and solutions that match
+- Key file paths to investigate""",
+        "tools":  [read_codebase_file, list_directory],
+    })
+
+    tasks.append({
+        "label":  "Source Explorer",
+        "system": build_research_system(name,
+            "Read source code files and search the codebase to understand "
+            "how the relevant features work internally."),
+        "prompt": f"""Research this issue by reading source code.
+
+{issue_context}
+
+## Key Files
+{key_files_text}
+{hints_text}
+
+Read the most relevant source files. Search for related code if needed. Focus on:
+- How the feature mentioned in the issue works
+- What code paths are involved
+- Validation, error handling, and edge cases
+- Config loading and default values""",
+        "tools":  [read_codebase_file, search_codebase],
+    })
+
+    if github_app_token and repo_full_name:
+        tasks.append({
+            "label":  "Issue Researcher",
+            "system": build_research_system(name,
+                "Search GitHub issues to find related reports, duplicates, "
+                "and prior solutions."),
+            "prompt": f"""Research this issue by searching GitHub issues.
+
+{issue_context}
+
+Search for related issues using different queries:
+- Key error messages or exception names from the issue
+- Feature names mentioned
+- Symptoms the user describes
+
+For each relevant issue found, read it and note:
+- Whether it's the same or similar problem
+- How it was resolved (if closed)
+- Any workarounds mentioned""",
+            "tools":  [search_github_issues, get_github_issue],
+        })
+
+    if stacktrace_classes:
+        class_list      = "\n".join(f"- {c}" for c in stacktrace_classes[:10])
+        class_file_list = "\n".join(f"- {f}" for f in class_files[:10])
+
+        tasks.append({
+            "label":  "Stacktrace Tracer",
+            "system": build_research_system(name,
+                "Trace through a stacktrace to identify the root cause of an error."),
+            "prompt": f"""Trace this stacktrace to find the root cause.
+
+{issue_context}
+
+## Classes in Stacktrace
+{class_list}
+
+## Class Files Found
+{class_file_list}
+
+Read each class file involved in the stacktrace. Trace the execution flow:
+- What method threw the exception?
+- What conditions trigger it?
+- What input or state causes this code path?
+- Is there a missing null check, incorrect assumption, or config issue?""",
+            "tools":  [read_codebase_file, search_codebase],
+        })
+
+    urls = extract_urls(issue_text)
+
+    if urls:
+        url_list = "\n".join(f"- {u}" for u in urls)
+
+        tasks.append({
+            "label":  "URL Fetcher",
+            "system": build_research_system(name,
+                "Fetch and analyze URLs referenced in the issue."),
+            "prompt": f"""Fetch these URLs and extract relevant information.
+
+{issue_context}
+
+## URLs to Fetch
+{url_list}
+
+Fetch each URL. For each one, summarize:
+- What the page contains
+- How it relates to the issue
+- Any specific instructions, configs, or solutions mentioned""",
+            "tools":  [fetch_url],
+        })
+
+    if has_foundation:
+        tasks.append({
+            "label":  "Foundation Explorer",
+            "system": build_research_system(name,
+                "Search the Foundation framework library to understand "
+                "framework-level behavior relevant to this issue."),
+            "prompt": f"""Research Foundation framework code relevant to this issue.
+
+{issue_context}
+
+The stacktrace involves Foundation framework classes (org.mineacademy.fo.*).
+Search the foundation/ directory for:
+- The classes involved in the stacktrace
+- How the framework method is called and what it expects
+- What validation or error handling exists at the framework level
+- Whether this is a framework bug or a misuse by the plugin""",
+            "tools":  [read_codebase_file, search_codebase],
+        })
+
+    if not tasks:
+        return ""
+
+    print(f"Research phase — launching {len(tasks)} agent(s) in parallel")
+
+    results = await asyncio.gather(*[
+        run_single_research(client, model, t["system"], t["prompt"], t["tools"], t["label"])
+        for t in tasks
+    ])
+
+    findings = []
+
+    for task, result in zip(tasks, results):
+        if result and result.strip():
+            findings.append(f"### {task['label']}\n{result.strip()}")
+
+    if not findings:
+        print("Research phase — no findings")
+        return ""
+
+    combined = (
+        "## Pre-Researched Context\n"
+        "The following findings were gathered by specialized research agents. "
+        "Use these as starting context — you can still explore further with your own tools.\n\n"
+        + "\n\n".join(findings)
+    )
+    print(f"Research phase — {len(findings)} agent(s) produced findings ({len(combined)} chars)")
+    return combined
+
+
 async def run():
     global project_config, project_id_global, key_files, writable_prefixes
     global github_app_token, repo_full_name
@@ -1231,41 +1447,6 @@ async def run():
 
     system_prompt = build_system_prompt(project_config, skills)
 
-    if is_reply:
-        conversation = load_conversation()
-        thread       = format_conversation(body, conversation)
-
-        user_prompt = f"""A user posted a follow-up comment on this issue. Respond to their latest comment.
-
-<untrusted_user_input>
-**Issue Title:** {title}{label_line}
-
-## Conversation Thread
-{thread}
-</untrusted_user_input>
-
-## Possibly Relevant Files
-{key_files_text}
-{hints_text}
-{insights_text}
-
-Respond to the latest comment. If it's just a thank-you with no question, respond with exactly SKIP and nothing else."""
-    else:
-        user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
-
-<untrusted_user_input>
-**Title:** {title}{label_line}
-
-{body}
-</untrusted_user_input>
-
-## Possibly Relevant Files
-{key_files_text}
-{hints_text}
-{insights_text}
-
-Read the most relevant files above, then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
-
     all_tools = [read_codebase_file, search_codebase, list_directory, write_codebase_file, patch_codebase_file, fetch_url, search_github_issues, get_github_issue]
     models    = ["claude-opus-4.6"]
 
@@ -1279,6 +1460,51 @@ Read the most relevant files above, then give a short, direct answer. Lead with 
     await client.start()
 
     try:
+        has_foundation    = has_foundation_stacktrace(all_text)
+        research_findings = await run_research_phase(
+            client, models[0], project_config, title, all_text, label_line,
+            skills, hints_text, key_files_text,
+            stacktrace_classes, class_files, has_foundation,
+        )
+        research_section = f"\n{research_findings}" if research_findings else ""
+
+        if is_reply:
+            conversation = load_conversation()
+            thread       = format_conversation(body, conversation)
+
+            user_prompt = f"""A user posted a follow-up comment on this issue. Respond to their latest comment.
+
+<untrusted_user_input>
+**Issue Title:** {title}{label_line}
+
+## Conversation Thread
+{thread}
+</untrusted_user_input>
+
+## Possibly Relevant Files
+{key_files_text}
+{hints_text}
+{insights_text}
+{research_section}
+
+Respond to the latest comment. If it's just a thank-you with no question, respond with exactly SKIP and nothing else."""
+        else:
+            user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
+
+<untrusted_user_input>
+**Title:** {title}{label_line}
+
+{body}
+</untrusted_user_input>
+
+## Possibly Relevant Files
+{key_files_text}
+{hints_text}
+{insights_text}
+{research_section}
+
+Read the pre-researched findings and relevant files above, then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
+
         text = await try_models(client, models, system_prompt, user_prompt, all_tools, "Phase 1")
 
         if not text:
