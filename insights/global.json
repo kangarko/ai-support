@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "variables",
+    "insight": "The `+` operator on variables (`{var+}`) bleeds formatting (underline, bold) into the added space because it appends a raw `\" \"`. The fix in Foundation (Variables.java, Replacer.java, HookManager.java) is to append `ChatColor.RESET + \" \" + ChatColor.getLastColors(textBeforeVariable)` so the space is neutral but preceding colors are restored for subsequent text.",
+    "related_skill": "variables",
+    "scope": "global",
+    "date": "2026-02-15",
+    "issue": 3432
+  }
+]
