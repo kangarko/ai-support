@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "proxy-sync",
+    "insight": "Hybrid server platforms (Arclight, Mohist \u2014 Forge/Fabric+Bukkit) can silently break proxy chat because their networking layer doesn't correctly handle Bukkit's `player.sendPluginMessage()` to/from the proxy. This is a platform limitation; users should test on Paper to confirm and enable `Debug: [proxy]` in settings.yml to diagnose.",
+    "related_skill": "proxy-sync",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3415
   }
 ]
