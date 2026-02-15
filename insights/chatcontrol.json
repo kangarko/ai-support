@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "`then sound` only plays to the message sender. To play a sound to all online players with a permission, use `then sound for <permission> <sound> [volume] [pitch]` (added in response to #3423). This mirrors the `then notify <permission> <message>` pattern. The broadcast is guarded by `firstTimeRun` and excludes the sender (who already receives it via `then sound`).",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-02-15",
+    "issue": 3423
   }
 ]
