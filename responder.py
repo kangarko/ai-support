@@ -20,6 +20,7 @@ from copilot import CopilotClient, define_tool
 MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
 AI_SUPPORT_DIR = "ai-support"
+WORKING_DIR    = "working"
 
 MAX_FILE_SIZE         = 80_000
 MAX_SEARCH_FILES      = 20
@@ -33,8 +34,6 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 50_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
-RESEARCH_TIMEOUT      = 600
-MAX_RESEARCH_WORDS    = 1500
 
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
@@ -256,6 +255,12 @@ def build_system_prompt(cfg, skills):
         "",
         "Always explain what you changed and why in your response, so the reviewer can verify.",
         "",
+        "## Working Scratchpad",
+        "You have a `working/` directory to persist notes across context compaction.",
+        "- Use `write_working_note` to record important findings as you research (root causes, key file paths, code snippets, plans)",
+        "- Use `read_working_notes` to recall findings if earlier tool results were compacted away",
+        "- Check for existing notes at the start — prior findings may already be recorded",
+        "",
         "## Follow-Up Conversations",
         "When responding to a follow-up comment on a thread you already answered:",
         "- Read the full conversation to understand what was discussed",
@@ -267,56 +272,6 @@ def build_system_prompt(cfg, skills):
     ])
 
     return "\n".join(parts)
-
-
-def build_review_prompt_system(name):
-    return f"""You are a senior engineer performing a thorough code review of proposed changes to {name}, a Minecraft plugin.
-
-Think deeply and exhaustively before approving. You are the last line of defense before these changes go into a draft PR.
-
-## What to check
-- **DRY violations**: Is there duplicated logic? Multiple functions or components doing the same thing? Does the change copy-paste something that already exists elsewhere?
-- **Broken code**: Will this compile? Are all imports present? Are types compatible? Are method signatures correct?
-- **Hidden bugs**: Null pointers, off-by-one errors, encoding issues, race conditions, resource leaks, unclosed streams?
-- **Edge cases**: What happens with empty input? Null values? Very large values? Special characters?
-- **Overengineering**: Is the change the minimum needed to fix the issue? Does it add unnecessary abstraction?
-- **Missed consistency**: Should similar changes be applied to other files or methods? Are there parallel implementations that need the same fix?
-- **Error handling**: If the code handles API responses or user input, does it log/surface unexpected values instead of swallowing them silently?
-- **Source code leakage**: Does the response text paste entire source files, full class implementations, or excessive internal details the user didn't need? Responses should explain solutions concisely, not dump proprietary code
-
-## How to review
-1. Read each changed file in full to understand context
-2. Search the codebase for similar patterns that might need the same change
-3. If you find problems, fix them using patch_codebase_file (for existing files) or write_codebase_file (for new files)
-4. If you get an unexpected response from any tool, include the raw response in your output
-5. If everything looks correct, respond with "LGTM" and nothing else"""
-
-
-def build_insight_prompt_system(name):
-    return f"""You analyze resolved GitHub issues for {name} to extract reusable support insights.
-
-Your goal: identify NEW knowledge that wasn't already in the skill files but was needed to answer this issue.
-
-## What qualifies as an insight
-- A specific config key behavior or default that users commonly misunderstand
-- A non-obvious interaction between two features
-- A common user mistake with a concrete fix
-- An error message and its actual root cause
-- A setup step users frequently miss
-
-## What does NOT qualify
-- Generic advice like "check your config" or "update the plugin"
-- Information already clearly documented in the skill files
-- Issue-specific details that won't help anyone else
-- Anything you're uncertain or speculating about
-- Restating what skill files already say
-
-## Rules
-- Store at most 1-2 insights per issue. Most issues teach nothing new — that's fine.
-- If nothing is genuinely new or useful, do NOT call store_insight at all.
-- Check the existing insights list to avoid duplicates or near-duplicates.
-- Each insight must be specific enough that reading it alone tells you what to do.
-- Prefer insights about config keys, permissions, and common error causes."""
 
 
 def extract_keywords(title, body):
@@ -372,10 +327,6 @@ def extract_urls(text):
         filtered.append(url)
 
     return filtered[:5]
-
-
-def has_foundation_stacktrace(text):
-    return bool(re.search(r"org\.mineacademy\.fo\.", text))
 
 
 def extract_mentioned_files(body):
@@ -1092,6 +1043,41 @@ def store_insight(params: StoreInsightParams) -> str:
     return f"Insight stored for topic '{params.topic}' (scope: {params.scope})."
 
 
+class WriteNoteParams(BaseModel):
+    filename: str = Field(default="notes.md", description="Filename within working/, e.g. 'notes.md' or 'findings.md'")
+    content: str = Field(description="Content to append to the file")
+
+
+@define_tool(description="Append a note to your working scratchpad in the working/ directory. Use this to record important findings, plans, and observations so they survive context compaction.")
+def write_working_note(params: WriteNoteParams) -> str:
+    if ".." in params.filename or "/" in params.filename or "\\" in params.filename:
+        return "Error: Filename must be a simple name without path separators."
+
+    path = Path(WORKING_DIR) / params.filename
+
+    with open(path, "a") as f:
+        f.write(params.content + "\n")
+
+    return f"Appended {len(params.content)} chars to working/{params.filename}"
+
+
+class ReadNotesParams(BaseModel):
+    filename: str = Field(default="notes.md", description="Filename within working/ to read, e.g. 'notes.md'")
+
+
+@define_tool(description="Read your working scratchpad notes from the working/ directory. Use this to recall findings you recorded earlier, especially after context compaction.")
+def read_working_notes(params: ReadNotesParams) -> str:
+    if ".." in params.filename or "/" in params.filename or "\\" in params.filename:
+        return "Error: Filename must be a simple name without path separators."
+
+    path = Path(WORKING_DIR) / params.filename
+
+    if not path.exists():
+        return "No working notes yet."
+
+    return path.read_text()
+
+
 async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10):
     session = await client.create_session({
         "model": model,
@@ -1151,6 +1137,41 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         return candidate
     finally:
         await session.destroy()
+
+
+async def send_prompt(session, prompt, timeout=3600, min_length=10):
+    done         = asyncio.Event()
+    event_errors = []
+
+    def on_event(event):
+        try:
+            event_type = normalize_role(read_field(event, "type"))
+            event_data = read_field(event, "data")
+
+            if event_type in ("error", "session.error", "assistant.error"):
+                error_text = extract_text(event_data)
+                event_errors.append(f"{event_type}: {error_text}" if error_text else event_type)
+            elif event_type == "session.idle":
+                done.set()
+        except Exception:
+            done.set()
+
+    session.on(on_event)
+    await session.send({"prompt": prompt})
+
+    try:
+        await asyncio.wait_for(done.wait(), timeout=timeout)
+    except asyncio.TimeoutError:
+        raise RuntimeError(f"Session timed out after {timeout}s. errors={event_errors[:3]}")
+
+    messages  = await session.get_messages()
+    msg_list  = list(messages)
+    candidate = extract_last_response(msg_list, min_length=min_length)
+
+    if not candidate:
+        raise RuntimeError(f"Empty output. errors={event_errors[:3]}, messages={len(msg_list)}")
+
+    return candidate
 
 
 def get_git_diff():
@@ -1229,214 +1250,6 @@ Respond with only YES or NO."""
         return True
 
 
-async def try_models(client, models, system, prompt, tools, phase_label, timeout=3600):
-    for model in models:
-        print(f"{phase_label} — trying model: {model}")
-
-        try:
-            result = await run_agent_session(client, model, system, prompt, tools, timeout)
-            print(f"{phase_label} — complete: {result[:200]}")
-            return result
-        except Exception as e:
-            print(f"{phase_label} — {model} failed: {e}")
-
-    return None
-
-
-def build_research_system(name, role):
-    return f"""You are a research agent for {name}, a Minecraft plugin. Your role: {role}
-
-## Rules
-- You have READ-ONLY access to the codebase. Explore thoroughly using your tools.
-- When done, write a focused summary of your findings in {MAX_RESEARCH_WORDS} words or fewer.
-- Include specific file paths, line numbers, config keys, and short code snippets that are relevant.
-- If you find nothing relevant, say so briefly.
-- Do NOT suggest fixes or write code — just report what you found."""
-
-
-async def run_single_research(client, model, system, prompt, tools, label):
-    try:
-        result = await run_agent_session(client, model, system, prompt, tools, timeout=RESEARCH_TIMEOUT)
-        print(f"  Research [{label}] — done ({len(result)} chars)")
-        return result
-    except Exception as e:
-        print(f"  Research [{label}] — failed: {e}")
-        return ""
-
-
-async def run_research_phase(client, model, cfg, title, issue_text, label_line,
-                             skills, hints_text, key_files_text,
-                             stacktrace_classes, class_files, has_foundation):
-    name          = cfg["name"]
-    issue_context = f"**Title:** {title}{label_line}\n\n{issue_text[:50000]}"
-    tasks         = []
-
-    skill_list = "\n".join(
-        f"- {AI_SUPPORT_DIR}/projects/{project_id_global}/skills/{s['dir']}/SKILL.md — {s['description']}"
-        for s in skills
-    )
-
-    tasks.append({
-        "label":  "Skill Reader",
-        "system": build_research_system(name,
-            "Read the most relevant skill files and extract architecture, "
-            "troubleshooting steps, and common issues related to this GitHub issue."),
-        "prompt": f"""Research this issue by reading skill files.
-
-{issue_context}
-
-## Available Skill Files
-{skill_list}
-
-Read the 1-3 most relevant skill files. Extract:
-- Architecture details relevant to the issue
-- Known troubleshooting steps that apply
-- Common issues and solutions that match
-- Key file paths to investigate""",
-        "tools":  [read_codebase_file, list_directory],
-    })
-
-    tasks.append({
-        "label":  "Source Explorer",
-        "system": build_research_system(name,
-            "Read source code files and search the codebase to understand "
-            "how the relevant features work internally."),
-        "prompt": f"""Research this issue by reading source code.
-
-{issue_context}
-
-## Key Files
-{key_files_text}
-{hints_text}
-
-Read the most relevant source files. Search for related code if needed. Focus on:
-- How the feature mentioned in the issue works
-- What code paths are involved
-- Validation, error handling, and edge cases
-- Config loading and default values""",
-        "tools":  [read_codebase_file, search_codebase],
-    })
-
-    if github_app_token and repo_full_name:
-        tasks.append({
-            "label":  "Issue Researcher",
-            "system": build_research_system(name,
-                "Search GitHub issues to find related reports, duplicates, "
-                "and prior solutions."),
-            "prompt": f"""Research this issue by searching GitHub issues.
-
-{issue_context}
-
-Search for related issues using different queries:
-- Key error messages or exception names from the issue
-- Feature names mentioned
-- Symptoms the user describes
-
-For each relevant issue found, read it and note:
-- Whether it's the same or similar problem
-- How it was resolved (if closed)
-- Any workarounds mentioned""",
-            "tools":  [search_github_issues, get_github_issue],
-        })
-
-    if stacktrace_classes:
-        class_list      = "\n".join(f"- {c}" for c in stacktrace_classes[:10])
-        class_file_list = "\n".join(f"- {f}" for f in class_files[:10])
-
-        tasks.append({
-            "label":  "Stacktrace Tracer",
-            "system": build_research_system(name,
-                "Trace through a stacktrace to identify the root cause of an error."),
-            "prompt": f"""Trace this stacktrace to find the root cause.
-
-{issue_context}
-
-## Classes in Stacktrace
-{class_list}
-
-## Class Files Found
-{class_file_list}
-
-Read each class file involved in the stacktrace. Trace the execution flow:
-- What method threw the exception?
-- What conditions trigger it?
-- What input or state causes this code path?
-- Is there a missing null check, incorrect assumption, or config issue?""",
-            "tools":  [read_codebase_file, search_codebase],
-        })
-
-    urls = extract_urls(issue_text)
-
-    if urls:
-        url_list = "\n".join(f"- {u}" for u in urls)
-
-        tasks.append({
-            "label":  "URL Fetcher",
-            "system": build_research_system(name,
-                "Fetch and analyze URLs referenced in the issue."),
-            "prompt": f"""Fetch these URLs and extract relevant information.
-
-{issue_context}
-
-## URLs to Fetch
-{url_list}
-
-Fetch each URL. For each one, summarize:
-- What the page contains
-- How it relates to the issue
-- Any specific instructions, configs, or solutions mentioned""",
-            "tools":  [fetch_url],
-        })
-
-    if has_foundation:
-        tasks.append({
-            "label":  "Foundation Explorer",
-            "system": build_research_system(name,
-                "Search the Foundation framework library to understand "
-                "framework-level behavior relevant to this issue."),
-            "prompt": f"""Research Foundation framework code relevant to this issue.
-
-{issue_context}
-
-The stacktrace involves Foundation framework classes (org.mineacademy.fo.*).
-Search the foundation/ directory for:
-- The classes involved in the stacktrace
-- How the framework method is called and what it expects
-- What validation or error handling exists at the framework level
-- Whether this is a framework bug or a misuse by the plugin""",
-            "tools":  [read_codebase_file, search_codebase],
-        })
-
-    if not tasks:
-        return ""
-
-    print(f"Research phase — launching {len(tasks)} agent(s) in parallel")
-
-    results = await asyncio.gather(*[
-        run_single_research(client, model, t["system"], t["prompt"], t["tools"], t["label"])
-        for t in tasks
-    ])
-
-    findings = []
-
-    for task, result in zip(tasks, results):
-        if result and result.strip():
-            findings.append(f"### {task['label']}\n{result.strip()}")
-
-    if not findings:
-        print("Research phase — no findings")
-        return ""
-
-    combined = (
-        "## Pre-Researched Context\n"
-        "The following findings were gathered by specialized research agents. "
-        "Use these as starting context — you can still explore further with your own tools.\n\n"
-        + "\n\n".join(findings)
-    )
-    print(f"Research phase — {len(findings)} agent(s) produced findings ({len(combined)} chars)")
-    return combined
-
-
 async def run():
     global project_config, project_id_global, key_files, writable_prefixes
     global github_app_token, repo_full_name
@@ -1483,6 +1296,13 @@ async def run():
     else:
         print(f"New issue: {title}")
 
+    working_path = Path(WORKING_DIR)
+
+    if working_path.exists():
+        shutil.rmtree(working_path)
+
+    working_path.mkdir(parents=True, exist_ok=True)
+
     all_text           = f"{body}\n{comment_body}" if is_reply else body
     keywords           = extract_keywords(title, all_text)
     stacktrace_classes = extract_stacktrace_classes(all_text)
@@ -1515,6 +1335,11 @@ async def run():
     key_files_text = "\n".join(f"- {f}" for f in key_files)
     label_line     = f"\n**Labels:** {labels}" if labels else ""
 
+    skill_list = "\n".join(
+        f"- {AI_SUPPORT_DIR}/projects/{project_id_global}/skills/{s['dir']}/SKILL.md \u2014 {s['description']}"
+        for s in skills
+    ) if skills else "No skill files available."
+
     project_insights, global_insights = load_all_insights(pid)
     project_insights                  = prune_insights(project_insights)
     global_insights                   = prune_insights(global_insights)
@@ -1522,8 +1347,13 @@ async def run():
 
     system_prompt = build_system_prompt(project_config, skills)
 
-    all_tools = [read_codebase_file, search_codebase, list_directory, write_codebase_file, patch_codebase_file, fetch_url, search_github_issues, get_github_issue]
-    models    = ["claude-opus-4.6-fast", "claude-opus-4.6"]
+    all_tools = [
+        read_codebase_file, search_codebase, list_directory,
+        write_codebase_file, patch_codebase_file,
+        fetch_url, search_github_issues, get_github_issue,
+        store_insight, write_working_note, read_working_notes,
+    ]
+    model = "claude-opus-4.6-fast"
 
     cli_path = resolve_cli_path()
     print(f"Using Copilot CLI: {cli_path}")
@@ -1542,18 +1372,10 @@ async def run():
                 for m in conversation
             ) if conversation else "(no prior messages)"
 
-            if not await should_respond_to_reply(client, models[0], title, comment_body, comment_author, conversation_snippet):
+            if not await should_respond_to_reply(client, model, title, comment_body, comment_author, conversation_snippet):
                 print("Triage: bot decided not to respond")
                 await client.stop()
                 return
-
-        has_foundation    = has_foundation_stacktrace(all_text)
-        research_findings = await run_research_phase(
-            client, models[0], project_config, title, all_text, label_line,
-            skills, hints_text, key_files_text,
-            stacktrace_classes, class_files, has_foundation,
-        )
-        research_section = f"\n{research_findings}" if research_findings else ""
 
         if is_reply:
             if not conversation:
@@ -1574,9 +1396,11 @@ async def run():
 {key_files_text}
 {hints_text}
 {insights_text}
-{research_section}
 
-Respond to the latest comment."""
+## Available Skill Files
+{skill_list}
+
+Read the most relevant skill files and source files, then respond to the latest comment. Write key findings to your working scratchpad as you go."""
         else:
             user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
 
@@ -1590,25 +1414,40 @@ Respond to the latest comment."""
 {key_files_text}
 {hints_text}
 {insights_text}
-{research_section}
 
-Read the pre-researched findings and relevant files above, then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
+## Available Skill Files
+{skill_list}
 
-        text = await try_models(client, models, system_prompt, user_prompt, all_tools, "Phase 1")
+Read the most relevant skill files and source files listed above. Write important findings to your working scratchpad as you go. Then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
 
-        if not text:
-            raise RuntimeError("All models failed in Phase 1.")
+        session = await client.create_session({
+            "model": model,
+            "streaming": False,
+            "system_message": {"content": system_prompt},
+            "tools": all_tools,
+            "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+            "infinite_sessions": {
+                "enabled": True,
+                "background_compaction_threshold": 0.80,
+                "buffer_exhaustion_threshold": 0.95,
+            },
+        })
 
-        if written_files:
-            print(f"Phase 2 — self-reviewing {len(written_files)} changed file(s)")
-            diff_output = get_git_diff()
+        try:
+            print("Phase 1 \u2014 generating response")
+            text = await send_prompt(session, user_prompt)
+            print(f"Phase 1 \u2014 complete: {text[:200]}")
 
-            if diff_output:
-                changed_summary = "\n".join(f"- `{wf['path']}`: {wf['reason']}" for wf in written_files)
+            if written_files:
+                print(f"Phase 2 \u2014 self-reviewing {len(written_files)} changed file(s)")
+                diff_output = get_git_diff()
 
-                review_prompt = f"""Review these proposed changes and the response for a {name} GitHub issue.
+                if diff_output:
+                    changed_summary = "\n".join(f"- `{wf['path']}`: {wf['reason']}" for wf in written_files)
 
-## Response That Will Be Posted
+                    review_prompt = f"""Now perform a thorough self-review of your proposed changes. You are the last line of defense before these go into a draft PR.
+
+## Your Response That Will Be Posted
 {text[:20000]}
 
 ## Changed Files
@@ -1619,77 +1458,89 @@ Read the pre-researched findings and relevant files above, then give a short, di
 {diff_output}
 ```
 
-Read each changed file and its surrounding code. Verify correctness, then check:
-1. DRY violations — duplicated logic that already exists elsewhere in the codebase
-2. Broken code — syntax errors, missing imports, wrong method signatures, type mismatches
-3. Hidden bugs — null handling, edge cases, off-by-one, encoding, resource leaks
-4. Overengineering — is the change the minimum needed to fix the issue?
-5. Consistency — does it match patterns and style in the surrounding code?
-6. Missed spots — should the same change be applied to other files or methods?
-7. Error handling — are unexpected responses logged, not silently swallowed?
-8. Source code leakage — does the response above paste entire source files or unnecessary implementation details?
+Read each changed file and its surrounding code. Check for:
+1. DRY violations \u2014 duplicated logic that already exists elsewhere
+2. Broken code \u2014 syntax errors, missing imports, wrong signatures, type mismatches
+3. Hidden bugs \u2014 null handling, edge cases, off-by-one, encoding, resource leaks
+4. Overengineering \u2014 is the change the minimum needed?
+5. Consistency \u2014 does it match patterns in surrounding code?
+6. Missed spots \u2014 should the same change apply to other files?
+7. Error handling \u2014 are unexpected responses logged, not silently swallowed?
+8. Source code leakage \u2014 does your response paste entire source files or unnecessary internals?
 
-If you find problems, fix them with patch_codebase_file (for existing files) or write_codebase_file (for new files). If everything looks correct, respond with "LGTM"."""
+If you find problems, fix them with patch_codebase_file or write_codebase_file. If everything looks correct, respond with "LGTM"."""
 
-                review_system = build_review_prompt_system(name)
-                review_result = await try_models(client, models, review_system, review_prompt, all_tools, "Phase 2")
+                    try:
+                        review_result = await send_prompt(session, review_prompt, timeout=600)
+                        print(f"Phase 2 \u2014 complete: {review_result[:200]}")
+                    except Exception as e:
+                        print(f"Warning: Phase 2 self-review failed \u2014 {e}")
 
-                if not review_result:
-                    print("Warning: Phase 2 self-review failed for all models — skipping review")
+            if not (is_reply and text.strip().upper().startswith("SKIP")):
+                print("Phase 3 \u2014 extracting insights")
 
-        if not (is_reply and text.strip().upper().startswith("SKIP")):
-            print("Phase 3 — extracting insights")
+                insight_prompt = f"""Now analyze this resolved issue to extract reusable support insights, if any.
 
-            insight_system = build_insight_prompt_system(name)
+Your goal: identify NEW knowledge that wasn't already in the skill files but was needed to answer this issue.
 
-            insight_prompt = f"""Analyze this resolved GitHub issue and the response given. Extract genuinely new support insights, if any.
+**What qualifies as an insight:**
+- A specific config key behavior or default that users commonly misunderstand
+- A non-obvious interaction between two features
+- A common user mistake with a concrete fix
+- An error message and its actual root cause
+- A setup step users frequently miss
 
-**Issue #{issue_number}: {title}**
+**What does NOT qualify:**
+- Generic advice like "check your config" or "update the plugin"
+- Information already clearly documented in the skill files
+- Issue-specific details that won't help anyone else
+- Anything you're uncertain about
 
-{body[:20000]}
-
-**Response Given:**
-{text[:20000]}
+**Rules:**
+- Store at most 1-2 insights using store_insight. Most issues teach nothing new \u2014 that's fine.
+- If nothing is genuinely new, respond with "No new insights." without calling store_insight.
+- Check the existing insights to avoid duplicates.
 
 {insights_text or "No existing insights yet."}
 
-Read the 1-2 most relevant skill files to verify your insight isn't already documented. Then decide if there's genuinely new knowledge worth storing. If not, respond with "No new insights." without calling store_insight."""
+Issue #{issue_number}: {title}"""
 
-            insight_tools = [read_codebase_file, search_codebase, store_insight]
+                try:
+                    insight_result = await send_prompt(session, insight_prompt, timeout=180, min_length=1)
+                    print(f"Phase 3 \u2014 complete: {insight_result[:200]}")
+                except Exception as e:
+                    print(f"Warning: Phase 3 insight extraction failed \u2014 {e}")
 
-            insight_result = await try_models(client, models, insight_system, insight_prompt, insight_tools, "Phase 3", timeout=180)
+                if new_insights:
+                    today          = datetime.now().strftime("%Y-%m-%d")
+                    new_project    = []
+                    new_global_ins = []
 
-            if not insight_result:
-                print("Warning: Phase 3 insight extraction failed for all models — skipping")
+                    for ni in new_insights:
+                        ni["date"]  = today
+                        ni["issue"] = int(issue_number)
 
-            if new_insights:
-                today          = datetime.now().strftime("%Y-%m-%d")
-                new_project    = []
-                new_global_ins = []
+                        if ni.get("scope") == "global":
+                            new_global_ins.append(ni)
+                        else:
+                            new_project.append(ni)
 
-                for ni in new_insights:
-                    ni["date"]  = today
-                    ni["issue"] = int(issue_number)
+                    if new_project:
+                        merged = prune_insights(project_insights + new_project)
+                        save_json_list(project_insights_path(pid), merged)
+                        print(f"Phase 3 \u2014 stored {len(new_project)} project insight(s)")
 
-                    if ni.get("scope") == "global":
-                        new_global_ins.append(ni)
-                    else:
-                        new_project.append(ni)
+                    if new_global_ins:
+                        merged = prune_insights(global_insights + new_global_ins)
+                        save_json_list(global_insights_path(), merged)
+                        print(f"Phase 3 \u2014 stored {len(new_global_ins)} global insight(s)")
 
-                if new_project:
-                    merged = prune_insights(project_insights + new_project)
-                    save_json_list(project_insights_path(pid), merged)
-                    print(f"Phase 3 — stored {len(new_project)} project insight(s)")
-
-                if new_global_ins:
-                    merged = prune_insights(global_insights + new_global_ins)
-                    save_json_list(global_insights_path(), merged)
-                    print(f"Phase 3 — stored {len(new_global_ins)} global insight(s)")
-
-                if not new_project and not new_global_ins:
-                    print("Phase 3 — no new insights")
-            else:
-                print("Phase 3 — no new insights")
+                    if not new_project and not new_global_ins:
+                        print("Phase 3 \u2014 no new insights")
+                else:
+                    print("Phase 3 \u2014 no new insights")
+        finally:
+            await session.destroy()
 
         if written_files:
             main_files       = [wf for wf in written_files if wf["path"].startswith(MAIN_DIR + "/")]
@@ -1711,13 +1562,13 @@ Read the 1-2 most relevant skill files to verify your insight isn't already docu
                     prefix = "**New:** " if wf.get("new") else ""
                     pr_lines.append(f"- {prefix}`{wf['path']}`: {wf['reason']}")
 
-                pr_lines.append("\n**This is a draft PR — human review required before merging.**")
+                pr_lines.append("\n**This is a draft PR \u2014 human review required before merging.**")
                 Path(filename).write_text("\n".join(pr_lines))
 
             print("PR description(s) written")
 
         if is_reply and text.strip().upper().startswith("SKIP"):
-            print("Bot decided to skip — no response needed")
+            print("Bot decided to skip \u2014 no response needed")
         else:
             Path(RESPONSE_FILE).write_text(text)
             print("Response written to response.md")
