@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "Boss health bar shows 0 while boss is still alive when using high armor/Protection enchantments: caused by double-subtraction in `HealthBarUtil.display()` which runs 5 ticks after the damage event (health already reduced) but subtracts `damage` again. Fix: pass `0` as damage to `HealthBarUtil.display()` and use `Remain.getFinalDamage(event)` instead of `event.getDamage()`.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-02-17",
+    "issue": 1443
+  }
+]
