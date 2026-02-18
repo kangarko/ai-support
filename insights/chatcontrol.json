@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "channels",
+    "insight": "`/ch sendas <player> <channel> <message>` requires the target player to be online. The entire channel message pipeline (formats, placeholders, permissions, range, rules) depends on a live player session. For web panel / automation use cases where the player may be offline, alternatives are `/chc announce <channel> <message>` (console broadcast) or `/mail send <player> <message>` (offline delivery).",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-02-18",
+    "issue": 3480
   }
 ]
