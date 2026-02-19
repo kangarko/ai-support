@@ -1435,7 +1435,7 @@ async def run():
         fetch_url, search_github_issues, get_github_issue,
         store_insight, write_working_note, read_working_notes,
     ]
-    model = "claude-opus-4.6-fast"
+    model = "claude-opus-4.6"
 
     cli_path = resolve_cli_path()
     print(f"Using Copilot CLI: {cli_path}")
