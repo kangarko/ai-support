@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "topic": "general",
+    "insight": "On Folia/ShreddedPaper, Foundation's Platform.runTask() uses the GlobalRegionScheduler, NOT the entity's regional scheduler. Any code that modifies player inventory, sends packets, or interacts with entity state from async callbacks (pollCache, syncCallback, etc.) must use Remain.runEntityTask(entity, delayTicks, runnable) instead, which uses the entity's scheduler via entity.getScheduler().run() on Folia and falls back to regular runTask on non-Folia servers.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-02-20",
+    "issue": 3486
+  },
+  {
+    "topic": "general",
+    "insight": "On Folia/ShreddedPaper, Foundation's `Platform.runTask()` and `Remain.runTask()` use the GlobalRegionScheduler, which cannot modify player inventory or interact with entity state. Code that touches player inventory from async callbacks (e.g. `pollCache`, `syncCallback`, `syncCallbackCommand`) must use `Remain.runEntityTask(entity, delayTicks, runnable)` instead, which routes through the entity's own scheduler. The error message is \"Thread failed main thread check: Player inventory modification\".",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-02-20",
+    "issue": 3486
+  }
+]
