@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "general",
+    "insight": "Modern Paper 1.21.x (not just forks like AdvancedSlimePaper) uses per-plugin classloader isolation, which causes Class.forName() calls in HookManager to fail when trying to detect other plugins' classes. The fix is to pass the target plugin's classloader explicitly: Class.forName(\"class.name\", true, Bukkit.getPluginManager().getPlugin(\"PluginName\").getClass().getClassLoader()). This affects the Citizens detection at HookManager line 174.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-02-20",
+    "issue": 1479
+  }
+]
