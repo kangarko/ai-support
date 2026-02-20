@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-filter",
+    "insight": "LibertyBans in proxy mode cancels chat events asynchronously, causing ChatControl at default `HIGH-MODERN` priority to sometimes process messages before the cancellation. Fix: set `Chat_Listener_Priority: HIGHEST-MODERN` in settings.yml (requires restart, not reload).",
+    "related_skill": "chat-filter",
+    "scope": "project",
+    "date": "2026-02-20",
+    "issue": 3484
   }
 ]
