@@ -6,5 +6,21 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "The `delay` operator in .rs message files is NOT prefixed with `then` \u2014 it's just `delay 3 seconds`, not `then delay 3 seconds`. Using `then delay` causes an \"Unrecognized operator\" parse error that prevents the group from loading. Also, `delay` is a cooldown (minimum time between re-triggers), not a \"wait X seconds before executing\" timer.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-21",
+    "issue": 3488
+  },
+  {
+    "topic": "messages",
+    "insight": "Join message groups in join.rs don't require a `message:` line \u2014 a group with only conditions and `then warn`/`then command` operators will still be processed. This lets you use join.rs groups to send private messages (via `then warn`) to specific players on join without broadcasting a public join message. Add `message: none` if you also want the group to consume the Stop_On_First_Match slot.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-21",
+    "issue": 3488
   }
 ]
