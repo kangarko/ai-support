@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "Messages.Apply_On in settings.yml defaults to an empty list `[]`. Users must explicitly add message types (join, quit, kick, death, timed) for the corresponding .rs files in messages/ to work. This is the most common reason join/quit/death messages don't appear at all. The join.rs file contains a comment warning about this, but users frequently miss it.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-22",
+    "issue": 3488
   }
 ]
