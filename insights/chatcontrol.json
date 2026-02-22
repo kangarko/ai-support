@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "When using `ignore receiver perm` in join/quit/death/timed message .rs files, wildcard permissions (`*`) from permission plugins like LuckPerms will match the custom permission (e.g. `chatcontrol.silence.join`), causing the message to be hidden from ALL players \u2014 not just the intended ones. Users should either negate the permission for default groups (`/lp group default permission set chatcontrol.silence.join false`) or flip the logic to use `require receiver perm` instead.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-02-22",
+    "issue": 3490
   }
 ]
