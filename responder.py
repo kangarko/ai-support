@@ -1167,44 +1167,13 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         "system_message": {"content": system_prompt},
         "tools": tools,
         "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
-        "infinite_sessions": {
-            "enabled": True,
-            "background_compaction_threshold": 0.80,
-            "buffer_exhaustion_threshold": 0.95,
-        },
     })
 
     try:
-        done         = asyncio.Event()
-        event_errors = []
-
-        def on_event(event):
-            try:
-                event_type = normalize_role(read_field(event, "type"))
-                event_data = read_field(event, "data")
-
-                if event_type in ("error", "session.error", "assistant.error"):
-                    error_text = extract_text(event_data)
-
-                    if error_text:
-                        event_errors.append(f"{event_type}: {error_text}")
-                    else:
-                        event_errors.append(event_type)
-
-                elif event_type == "session.idle":
-                    done.set()
-            except Exception:
-                done.set()
-
-        session.on(on_event)
-        await session.send({"prompt": user_prompt})
-
         try:
-            await asyncio.wait_for(done.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
-            raise RuntimeError(
-                f"Session timed out after {timeout}s. event_errors={event_errors[:3]}"
-            )
+            await session.send_and_wait({"prompt": user_prompt}, timeout=float(timeout))
+        except (TimeoutError, asyncio.TimeoutError):
+            raise RuntimeError(f"Session timed out after {timeout}s")
 
         messages  = await session.get_messages()
         msg_list  = list(messages)
@@ -1212,46 +1181,67 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         candidate = extract_last_response(msg_list, min_length=min_length)
 
         if not candidate:
-            raise RuntimeError(
-                f"Empty output. event_errors={event_errors[:3]}, messages={len(msg_list)}"
-            )
+            raise RuntimeError(f"Empty output. messages={len(msg_list)}")
 
         return candidate
     finally:
         await session.destroy()
 
 
+STALL_TIMEOUT = 300
+
+
 async def send_prompt(session, prompt, timeout=3600, min_length=10):
-    done         = asyncio.Event()
-    event_errors = []
+    last_event_time = [asyncio.get_event_loop().time()]
+    event_count     = [0]
 
-    def on_event(event):
-        try:
-            event_type = normalize_role(read_field(event, "type"))
-            event_data = read_field(event, "data")
+    def activity_monitor(event):
+        event_count[0]     += 1
+        last_event_time[0]  = asyncio.get_event_loop().time()
 
-            if event_type in ("error", "session.error", "assistant.error"):
-                error_text = extract_text(event_data)
-                event_errors.append(f"{event_type}: {error_text}" if error_text else event_type)
-            elif event_type == "session.idle":
-                done.set()
-        except Exception:
-            done.set()
-
-    session.on(on_event)
-    await session.send({"prompt": prompt})
+    unsubscribe = session.on(activity_monitor)
 
     try:
-        await asyncio.wait_for(done.wait(), timeout=timeout)
-    except asyncio.TimeoutError:
-        raise RuntimeError(f"Session timed out after {timeout}s. errors={event_errors[:3]}")
+        send_task = asyncio.create_task(
+            session.send_and_wait({"prompt": prompt}, timeout=float(timeout))
+        )
+
+        while not send_task.done():
+            done_set, _ = await asyncio.wait({send_task}, timeout=30.0)
+
+            if done_set:
+                break
+
+            stalled = asyncio.get_event_loop().time() - last_event_time[0]
+
+            if stalled >= STALL_TIMEOUT:
+                send_task.cancel()
+
+                try:
+                    await send_task
+                except asyncio.CancelledError:
+                    pass
+
+                raise RuntimeError(
+                    f"Session stalled — no events for {int(stalled)}s "
+                    f"(events received: {event_count[0]})"
+                )
+
+        try:
+            send_task.result()
+        except (TimeoutError, asyncio.TimeoutError):
+            raise RuntimeError(
+                f"Session timed out after {timeout}s (events: {event_count[0]})"
+            )
+    finally:
+        unsubscribe()
 
     messages  = await session.get_messages()
     msg_list  = list(messages)
     candidate = extract_last_response(msg_list, min_length=min_length)
 
     if not candidate:
-        raise RuntimeError(f"Empty output. errors={event_errors[:3]}, messages={len(msg_list)}")
+        raise RuntimeError(f"Empty output. messages={len(msg_list)}")
 
     return candidate
 
@@ -1517,7 +1507,27 @@ Read the most relevant skill files and source files listed above. Write importan
 
         try:
             print("Phase 1 \u2014 generating response")
-            text = await send_prompt(session, user_prompt)
+
+            try:
+                text = await send_prompt(session, user_prompt)
+            except RuntimeError as phase1_err:
+                print(f"Phase 1 \u2014 failed: {phase1_err}, retrying with fresh session")
+                await session.destroy()
+
+                session = await client.create_session({
+                    "model": model,
+                    "streaming": False,
+                    "system_message": {"content": system_prompt},
+                    "tools": all_tools,
+                    "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+                    "infinite_sessions": {
+                        "enabled": True,
+                        "background_compaction_threshold": 0.80,
+                        "buffer_exhaustion_threshold": 0.95,
+                    },
+                })
+                text = await send_prompt(session, user_prompt)
+
             print(f"Phase 1 \u2014 complete: {text[:200]}")
 
             if written_files:
