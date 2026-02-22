@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-filter",
+    "insight": "When users report \"bypass caps not working\", the caps correction may be coming from another plugin rather than ChatControl. ChatControl's default anti-caps message is \"Please avoid excessive capitalization in your {type}.\" (locale key `checker-caps` in `en_US.json`) and is sent as a chat message, not a title. If the user sees a different message (e.g., \"Too many caps\" as a title), another plugin is responsible. Ask users to confirm the exact message text and format to rule this out early.",
+    "related_skill": "chat-filter",
+    "scope": "project",
+    "date": "2026-02-22",
+    "issue": 3489
   }
 ]
