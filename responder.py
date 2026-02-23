@@ -133,13 +133,13 @@ def build_layout_section(cfg):
 
 
 def build_knowledge_section(pid, skills):
-    lines = ["Topic-specific skill files with architecture, troubleshooting guides, and file paths:"]
+    lines = ["Troubleshooting playbooks with diagnostic flows, common mistakes, and cross-plugin conflicts:"]
 
     for s in skills:
         rel_path = f"{AI_SUPPORT_DIR}/projects/{pid}/skills/{s['dir']}/SKILL.md"
         lines.append(f"- {rel_path} — {s['description']}")
 
-    lines.append("Read the 1-3 most relevant skill files FIRST — they contain architecture overviews and troubleshooting guides. For specific config keys, default values, commands, and permissions, read the actual source files using read_codebase_file.")
+    lines.append("Read the 1-3 most relevant skill files FIRST — they contain troubleshooting playbooks and diagnostic flows. For architecture details, config keys, defaults, commands, and permissions, read the actual source files using read_codebase_file.")
 
     return "\n".join(lines)
 
@@ -189,7 +189,7 @@ def build_system_prompt(cfg, skills):
         knowledge_section,
         "",
         "## Learned Insights",
-        "You may receive supplementary insights learned from previous issue resolutions. Skill files are authoritative; insights are supplementary hints for edge cases and common pitfalls discovered through real issues.",
+        "You may receive supplementary insights learned from previous issue resolutions. Skill files contain troubleshooting playbooks and known pitfalls; insights are supplementary hints for edge cases discovered through real issues.",
         "",
         "## Purchase Links",
         purchase_section,
@@ -220,6 +220,7 @@ def build_system_prompt(cfg, skills):
         "- Never put multiple statements on a single line inside braces. Always expand to multiple lines",
         "",
         "## Your Behavior",
+        "- When a user reports a feature not working or 'still happening': FIRST ask what exact message/error they see and in what format (chat message, title, actionbar, bossbar, toast). Compare against known messages before assuming the issue is with this plugin. Ask for their plugin list (/plugins) if another plugin is suspected",
         "- Read the relevant source files before answering questions about code. If a user references a specific file, read it first. Give grounded answers based on actual code — never speculate about code you haven't opened",
         "- When reading source files, read the entire file at once instead of making many small reads",
         "- When reading multiple files or searching for multiple terms, make independent tool calls in parallel to build context faster",
@@ -242,7 +243,7 @@ def build_system_prompt(cfg, skills):
     parts.extend([
         "",
         "## Response Style",
-        "Your readers are Minecraft server owners — busy people who want answers, not essays. Match the length to the complexity: a one-line config fix gets a one-line answer; a multi-layered bug gets a thorough walkthrough. Never pad, never ramble.",
+        "Your readers are Minecraft server owners — busy people who want answers, not essays. Most answers should be 1-4 sentences plus an optional code block. Only expand beyond that for multi-step bugs or feature implementations. Never pad, never ramble.",
         "",
         "- **Lead with the fix.** Solution first, context second. If someone can solve their problem by reading only your first sentence, you did it right.",
         "- **Show only what they need to change** — the relevant config key or code snippet, not the entire file.",
@@ -250,9 +251,11 @@ def build_system_prompt(cfg, skills):
         "- **Never expose code internals.** Users are server owners, not developers. Don't mention polling intervals, messaging channel names, internal data structures, class names, or how the code works under the hood. Even if someone asks \"how does X work?\", explain only what they need to *do* (setup steps, config keys, what features it enables) — not the implementation.",
         "- **Never tell users to write code.** Don't suggest creating Java plugins, using APIs, registering classes, or calling methods. If a feature needs code changes, implement it yourself and propose a PR. If you can't implement it confidently, say it needs to be implemented by the development team — never ask the user to do it.",
         "- **Bold the key action:** e.g. **set `X: true` in settings.yml**",
-        "- If you need more info, ask a few specific questions in a bullet list at the end.",
+        "- If you need more info, ask 1-3 specific questions in a bullet list — do not list every possible cause, just the most likely ones.",
         "- Use GitHub Markdown with `yaml` or `java` language tags for code blocks.",
         "- Skip headers (##) unless you're genuinely covering multiple distinct topics.",
+        "- **Never list more than 3 possible causes.** Pick the most likely based on the evidence and ask a targeted question to narrow down. Listing 5-10 'possible causes' is unhelpful — it shifts the diagnostic work to the user.",
+        "- **Don't explain how something works unless explicitly asked.** If the user says 'X isn't working', give the fix, not a paragraph about how X is supposed to work.",
         "",
         "## Fix & Feature Capability",
         "When you can fix a bug or implement a requested feature, propose changes via a draft PR for human review — you are NOT deploying to production.",

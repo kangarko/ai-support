@@ -1,61 +1,20 @@
 ---
 name: groups
-description: 'ChatControl permission groups: group-based setting overrides, chatcontrol.group.{name} permissions, per-group message delays, similarity thresholds, channel limits, MOTD, sound notify format. Use when configuring group overrides or diagnosing group permission issues.'
+description: 'Troubleshooting ChatControl permission groups and setting overrides'
 ---
 
-# Permission Groups
+# Permission Groups Troubleshooting
 
-## Overview
+## Critical Concept — TWO Unrelated "Group" Meanings
 
-ChatControl groups override global settings per-player based on the `chatcontrol.group.<name>` permission. Groups are NOT Vault permission groups — they are ChatControl-specific permission-based overrides.
+This is the **#1 confusion source** across all ChatControl support:
 
-**Important distinction:** There are TWO unrelated "group" concepts:
-1. **PlayerGroup** (this skill) — permission-based setting overrides in `settings.yml` → `Groups`
-2. **Rule Group** — reusable operator sets in `rules/groups.rs` (see rules-engine skill)
+1. **PlayerGroup** (settings.yml `Groups`) — permission-based setting overrides. Uses `chatcontrol.group.{name}` permission. Overrides message delay, similarity threshold, etc.
+2. **Rule Group** (`rules/groups.rs`) — reusable operator sets for the rules engine. Completely unrelated
 
-## Architecture
+These are NOT Vault groups. ChatControl does NOT use Vault group names. This is a deliberate design decision — works with any permissions plugin. Assign `chatcontrol.group.vip` permission to your Vault VIP group.
 
-### Key Classes
-- `PlayerGroup<T>` (model/PlayerGroup.java) — generic class holding a setting type and default
-- `PlayerGroup.Type` — enum of overridable settings
+## Common Mistakes
 
-### Resolution Logic
-```
-PlayerGroup.getFor(player)
-  → Iterate Settings.Groups.LIST (order matters)
-    → For each group: check if player has chatcontrol.group.<name>
-      → First match wins → return group value
-  → No match → return global default
-```
-
-## Common Issues & Solutions
-
-### "Group override not applying"
-1. Verify permission: `chatcontrol.group.<name>` (not Vault group name)
-2. Check group order in settings.yml — first match wins
-3. Ensure the setting key is spelled correctly (case-sensitive)
-4. Use `/chc info <player>` to check resolved values
-
-### "Vault groups vs ChatControl groups"
-- ChatControl does NOT use Vault group names
-- Assign `chatcontrol.group.vip` permission to your Vault VIP group
-- This is a deliberate design: works with any permissions plugin
-
-### "Multiple groups conflicting"
-- Player gets the FIRST matching group only
-- Order groups from most specific (highest rank) to least
-- Admin should be listed before VIP if admin has VIP permission too
-
-### "Group delay set to 0 but still delayed"
-- Check channel-specific `Message_Delay` override (takes priority)
-- Check `chatcontrol.bypass.delay.chat` permission instead
-
-## Key File Paths
-
-- PlayerGroup class: `chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/model/PlayerGroup.java`
-- Settings: `chatcontrol-bukkit/src/main/resources/settings.yml` (Groups section)
-- Permissions: `chatcontrol-core/src/main/java/org/mineacademy/chatcontrol/model/Permissions.java`
-
-## Reference
-
-For configuration keys, default values, commands, permissions, and variables not covered above, read the source files directly using `read_codebase_file`. The key file paths above point to the most relevant files.
+- **First-match-wins ordering** — player gets the FIRST matching group only. Order groups from most specific (highest rank) to least. Admin should be listed before VIP if admin also has VIP permission
+- **Channel delay overrides group delay** — per-channel `Message_Delay` takes priority over group-level delay. Users report "group delay setting not working" — check channel config
