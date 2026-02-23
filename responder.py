@@ -229,7 +229,7 @@ def build_system_prompt(cfg, skills):
         f"- If the issue lacks info, ask for: server version, {name} version, config snippets, error logs",
         "- Do not suggest downgrading the plugin or Java version",
         "- Implement features and fixes yourself via `patch_codebase_file` (for existing files) or `write_codebase_file` (for new files) and propose a PR — your users are server owners, not developers",
-        "- Use `fetch_url` to read documentation pages, wiki articles, or URLs referenced in issues",
+        "- When the issue contains URLs (Pastebin, Hastebin, GitHub Gists, log sites), use `fetch_url` to read them FIRST before diving into source files \u2014 they often contain the error log or config needed to diagnose the problem",
         "- Use `search_github_issues` to find related or duplicate issues before answering",
         "- Use `get_github_issue` to read cross-referenced issues (e.g. when someone says 'same as #123')",
         "- Use `close_pull_request` when the repository owner asks you to close a PR. Only confirm a PR is closed after actually calling this tool",
@@ -1178,6 +1178,8 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
             await session.send_and_wait({"prompt": user_prompt}, timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
             raise RuntimeError(f"Session timed out after {timeout}s")
+        except Exception as e:
+            raise RuntimeError(f"Session failed: {e}")
 
         messages  = await session.get_messages()
         msg_list  = list(messages)
@@ -1236,6 +1238,14 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
         except (TimeoutError, asyncio.TimeoutError):
             raise RuntimeError(
                 f"Session timed out after {timeout}s (events: {event_count[0]})"
+            )
+        except asyncio.CancelledError:
+            raise RuntimeError(
+                f"Session cancelled (events: {event_count[0]})"
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Session failed: {e} (events: {event_count[0]})"
             )
     finally:
         unsubscribe()
@@ -1458,9 +1468,16 @@ async def run():
     class_files        = find_class_files(stacktrace_classes) if stacktrace_classes else []
     mentioned_files    = extract_mentioned_files(all_text)
     search_files       = search_repos_by_keywords(keywords)
-    print(f"Pre-analysis: {len(keywords)} keywords, {len(class_files)} stacktrace files, {len(mentioned_files)} mentioned files, {len(search_files)} keyword matches")
+    issue_urls         = extract_urls(all_text)
+    print(f"Pre-analysis: {len(keywords)} keywords, {len(class_files)} stacktrace files, {len(mentioned_files)} mentioned files, {len(search_files)} keyword matches, {len(issue_urls)} URLs")
 
     hints = []
+
+    if issue_urls:
+        hints.append("### URLs in Issue (fetch these FIRST with fetch_url)")
+
+        for url in issue_urls:
+            hints.append(f"- {url}")
 
     if class_files:
         hints.append("### Stacktrace-Related Files (read these first for error issues)")
@@ -1594,7 +1611,7 @@ Read the most relevant skill files and source files listed above. Write importan
 
             try:
                 text = await send_prompt(session, user_prompt)
-            except RuntimeError as phase1_err:
+            except Exception as phase1_err:
                 print(f"Phase 1 \u2014 failed: {phase1_err}, retrying with fresh session")
                 await session.destroy()
 

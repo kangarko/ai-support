@@ -132,6 +132,7 @@ jobs:
 
       - name: Analyze issue and generate response
         env:
+          PYTHONUNBUFFERED: "1"
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_MCP_GITHUB_TOKEN }}
           GITHUB_APP_TOKEN: ${{ steps.app_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -272,7 +273,7 @@ jobs:
             --body-file response.md
 
       - name: Post failure diagnostic
-        if: "failure() && !steps.fix_pr.outcome && hashFiles('failure.md') != ''"
+        if: "failure() && hashFiles('failure.md') != ''"
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
