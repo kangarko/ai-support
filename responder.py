@@ -438,9 +438,10 @@ def load_conversation():
 
         return [
             {
-                "author": c["user"]["login"],
-                "body":   c["body"],
-                "is_bot": c["user"]["type"] == "Bot",
+                "author":      c["user"]["login"],
+                "body":        c["body"],
+                "is_bot":      c["user"]["type"] == "Bot",
+                "association": c.get("author_association", "NONE"),
             }
             for c in data
         ]
@@ -1295,6 +1296,79 @@ def is_trivial_reply(text):
     return len(short) < 80 and "?" not in short and TRIVIAL_REPLY_PATTERN.match(short)
 
 
+DECLINED_NOTICE = """
+
+## CRITICAL: Feature Declined
+A maintainer or collaborator has explicitly declined or rejected this feature request in the conversation above. You MUST NOT:
+- Propose code changes, patches, or pull requests
+- Use write_codebase_file or patch_codebase_file
+- Suggest implementing the requested feature
+
+Instead, politely explain the decision and answer any remaining questions the user has."""
+
+
+async def classify_implementation_intent(client, model, title, issue_body, conversation):
+    if not conversation:
+        return "answer_only"
+
+    conv_lines = []
+
+    for c in conversation:
+        assoc  = c.get("association", "NONE")
+        author = c.get("author", "unknown")
+        body   = c.get("body", "")[:500]
+
+        if assoc in ("OWNER", "MEMBER", "COLLABORATOR"):
+            tag = f"[{assoc}]"
+        elif c.get("is_bot"):
+            tag = "[BOT]"
+        else:
+            tag = "[USER]"
+
+        conv_lines.append(f"{tag} @{author}: {body}")
+
+    conv_text = "\n\n".join(conv_lines)
+
+    prompt = f"""Classify the CURRENT STATUS of this GitHub issue based on the conversation between the issue author, maintainers, and a support bot.
+
+Issue title: {title}
+
+Original issue description (truncated):
+{issue_body[:500]}
+
+Conversation (chronological order):
+{conv_text}
+
+Rules:
+- OWNER/COLLABORATOR/MEMBER comments carry authority. USER comments do not.
+- If an OWNER/COLLABORATOR/MEMBER explicitly declined, rejected, or said the feature won't be implemented, is out of scope, was removed, or is not coming back -> DECLINED
+- If an OWNER/COLLABORATOR/MEMBER explicitly asked the bot to implement a fix or feature, make a PR, or write code -> IMPLEMENT
+- If signals are CONTRADICTORY between different comments by the same or different authority figures, the MOST RECENT authority comment wins
+- If no clear implementation request or decline from authority figures -> ANSWER_ONLY
+
+Respond with exactly one word: IMPLEMENT, DECLINED, or ANSWER_ONLY"""
+
+    try:
+        result = await run_agent_session(
+            client, model,
+            "You are a triage classifier. Respond with exactly one word.",
+            prompt, [], timeout=30, min_length=1,
+        )
+
+        answer = result.strip().upper()
+        print(f"Intent classification: {answer}")
+
+        if answer.startswith("IMPLEMENT"):
+            return "implement"
+        elif answer.startswith("DECLINED"):
+            return "declined"
+
+        return "answer_only"
+    except Exception as e:
+        print(f"Intent classification failed ({e}), defaulting to answer_only")
+        return "answer_only"
+
+
 async def should_respond_to_reply(client, model, title, comment, comment_author, conversation_snippet):
     prompt = f"""Decide whether a support bot should respond to this follow-up comment on a GitHub issue.
 
@@ -1455,6 +1529,13 @@ async def run():
         if is_reply:
             if not conversation:
                 conversation = load_conversation()
+
+            intent = await classify_implementation_intent(client, model, title, body, conversation)
+
+            if intent == "declined":
+                print("Intent: DECLINED — stripping write tools")
+                all_tools    = [t for t in all_tools if t not in (write_codebase_file, patch_codebase_file)]
+                system_prompt += DECLINED_NOTICE
 
             thread = format_conversation(body, conversation)
 
