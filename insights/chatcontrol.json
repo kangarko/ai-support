@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "tags-nicks",
+    "insight": "When `Backward_Compatible: true` (default) under `Tag:` in settings.yml, ChatControl pulls nicknames from EssentialsX/CMI. If EssentialsX allows `&k` (obfuscated) or `&l` (bold) in nicks via `essentials.nick.magic`/`essentials.nick.format` permissions, those formatting codes leak into all subsequent text in chat formats (/helpop, /ac, channels). Fix: remove those EssentialsX permissions, or switch to ChatControl's own nick system by setting `Backward_Compatible: false` and `Apply_On: [nick]`.",
+    "related_skill": "tags-nicks",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3491
   }
 ]
