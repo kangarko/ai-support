@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "The `&#RRGGBB` hex color format (e.g. `&#e6f6f7`) was not supported in format files and other config values prior to the fix in CompChatColor.convertLegacyToMini(). Users should use MiniMessage syntax `<#RRGGBB>` (e.g. `<#e6f6f7>`) as a workaround, which has always been supported. The `&x&R&R&G&G&B&B` ampersand-based extended hex format was also unsupported \u2014 only `\u00a7x\u00a7R\u00a7R\u00a7G\u00a7G\u00a7B\u00a7B` (section-sign) worked.",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3494
   }
 ]
