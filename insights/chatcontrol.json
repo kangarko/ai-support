@@ -6,5 +6,21 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "channels",
+    "insight": "When ChatControl channels are disabled and a third-party channel plugin (like TownyChat) manages chat recipients, SoundNotify.addTagAndSound() must receive the Bukkit chat event's filtered recipients set to avoid playing mention sounds for players who can't see the message. The fix passes viewer UUIDs from ChatHandler to SoundNotify, which skips players not in the recipients set.",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3492
+  },
+  {
+    "topic": "channels",
+    "insight": "When ChatControl channels are disabled and a third-party channel plugin (TownyChat, HeroChat) manages chat, SoundNotify.addTagAndSound() plays mention sounds for ALL online players whose name matches, ignoring the Bukkit event's filtered recipients. The fix passes the chat event viewer UUIDs to SoundNotify so it skips players not in the recipients set.",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3492
   }
 ]
