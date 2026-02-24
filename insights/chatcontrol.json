@@ -6,5 +6,21 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "proxy-sync",
+    "insight": "VelocityControl's `Chat_Forwarding.Enabled` is ONLY for relaying raw chat to/from servers that do NOT have ChatControl installed. When both servers have ChatControl, cross-server chat works via the channel system (`Proxy: true` on the channel + `proxy.yml` Enabled on each backend) \u2014 Chat_Forwarding should be `false` in that case. Users frequently confuse these two mechanisms and toggle Chat_Forwarding thinking it's needed for normal cross-server channels.",
+    "related_skill": "proxy-sync",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3368
+  },
+  {
+    "topic": "proxy-sync",
+    "insight": "Plugins spawning fake/NPC players can break proxy forwarding after some time \u2014 the proxy pipeline doesn't filter NPCs from online player lists. When a user reports proxy forwarding \"works then stops\", ask about NPC plugins and test without them. Also, server names allow hyphens (`[a-zA-Z0-9_-]+`), contrary to what the skill file states.",
+    "related_skill": "proxy-sync",
+    "scope": "project",
+    "date": "2026-02-24",
+    "issue": 3368
   }
 ]
