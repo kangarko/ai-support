@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "When Citizens NPC bosses don't attack or wander, users must configure Target Goal (Aggressive: true, Entities: PLAYER) and Wander Goal separately in the boss's Citizens menu section. \"Keep In Region\" teleports the boss back instantly \u2014 users wanting natural walking should disable it and use wander radius to limit roaming instead.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-02-25",
+    "issue": 1479
+  }
+]
