@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "variables",
+    "insight": "Item display names from Bukkit use `\u00a7` for real plugin-set colors and `&` for player-typed anvil text. When inserting item names into chat messages, strip only `&` codes (anvil injection) and convert `\u00a7` codes via `SimpleComponent.fromMiniSection().toMini()` \u2014 never use `CompChatColor.stripColorCodes()` which strips both.",
+    "related_skill": "messages",
+    "scope": "global",
+    "date": "2026-02-25",
+    "issue": 3389
+  }
+]
