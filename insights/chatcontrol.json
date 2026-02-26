@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "The `@prolong` annotation in rule replacements treats the **last character** of the text after `@prolong[:N] ` as the character to repeat; everything before it is a one-time prefix. This allows combining MiniMessage formatting with prolong, e.g. `then replace @prolong:1 <hover:show_text:'$1'><!shadow>\u23f9` will wrap the repeated \u23f9 characters in a hover tag. The prolong character must always be the final character in the replacement string.",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-02-26",
+    "issue": 3429
   }
 ]
