@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "general",
+    "insight": "Paper 1.21.10+ uses plugin class remapping (io.papermc.reflectionrewriter.runtime.AbstractDefaultRulesReflectionProxy) that intercepts Class.forName() calls. When checking for classes from other plugins, you must pass the target plugin's classloader: Class.forName(\"pkg.Class\", true, Bukkit.getPluginManager().getPlugin(\"PluginName\").getClass().getClassLoader()). Without this, ClassNotFoundException occurs due to classloader isolation.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-02-26",
+    "issue": 1480
+  }
+]
