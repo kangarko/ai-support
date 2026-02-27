@@ -49,4 +49,27 @@ extra_rules: |
   - If someone asks where to get the plugin or proxy module, link them to the BuiltByBit pages listed above
   - **Bukkit limitation:** Proxy sync requires at least one online player on the sending backend server to work. This is a Bukkit/Spigot platform limitation (plugin messaging channels only function when a player is connected). Always mention this when explaining proxy setup
 
+known_dependencies:
+  DiscordSRV: DiscordSRV/DiscordSRV
+  Vault: MilkBowl/VaultAPI
+  PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
+  ProtocolLib: dmulloy2/ProtocolLib
+  mcMMO: mcMMO-Dev/mcMMO
+  Towny: TownyAdvanced/Towny
+  TownyChat: TownyAdvanced/TownyChat
+  AuthMe: AuthMe/AuthMeReloaded
+  Essentials: EssentialsX/Essentials
+  SimpleClans: RoinujNosde/SimpleClans
+  dynmap: webbukkit/dynmap
+  LuckPerms: LuckPerms/LuckPerms
+  Factions: MassiveCraft/Factions
+  Lands: IncrediblePlugins/LandsAPI
+  PlotSquared: IntellectualSites/PlotSquared
+  BentoBox: BentoBoxWorld/BentoBox
+  Multiverse-Core: Multiverse/Multiverse-Core
+  WorldEdit: EngineHub/WorldEdit
+  InteractiveChat: LOOHP/InteractiveChat
+  TAB: NEZNAMY/TAB
+  Parties: AlessioDP/Parties
+
 docs_url: "https://docs.mineacademy.org/chatcontrol/"

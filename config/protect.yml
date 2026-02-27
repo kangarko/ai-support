@@ -31,3 +31,22 @@ extra_rules: |
   - Supports 8 shop plugins for transaction logging: BlueShop, ChestShop, ExcellentShop, ShopGUI, Shop, SignShop, EconomyShopGUI, QuickShop
 
 docs_url: "https://docs.mineacademy.org/protect/"
+
+known_dependencies:
+  WorldEdit: EngineHub/WorldEdit
+  WorldGuard: EngineHub/WorldGuard
+  mcMMO: mcMMO-Dev/mcMMO
+  ChestShop: ChestShop-authors/ChestShop-3
+  QuickShop: QuickShop-Community/QuickShop-Hikari
+  ExcellentShop: nulli0n/ExcellentShop-spigot
+  EconomyShopGUI: Gypopo/EconomyShopGUI-API
+  Vault: MilkBowl/VaultAPI
+  PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
+  ProtocolLib: dmulloy2/ProtocolLib
+  DiscordSRV: DiscordSRV/DiscordSRV
+  Towny: TownyAdvanced/Towny
+  LuckPerms: LuckPerms/LuckPerms
+  AuthMe: AuthMe/AuthMeReloaded
+  Essentials: EssentialsX/Essentials
+  Lands: IncrediblePlugins/LandsAPI
+  GriefPrevention: GriefPrevention/GriefPrevention

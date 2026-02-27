@@ -27,3 +27,20 @@ extra_rules: |
   - Boss supports Citizens NPC integration and ModelEngine custom models
 
 docs_url: "https://docs.mineacademy.org/boss/"
+
+known_dependencies:
+  Citizens: CitizensDev/CitizensAPI
+  WorldGuard: EngineHub/WorldGuard
+  WorldEdit: EngineHub/WorldEdit
+  GriefPrevention: GriefPrevention/GriefPrevention
+  Lands: IncrediblePlugins/LandsAPI
+  RoseStacker: Rosewood-Development/RoseStacker
+  Vault: MilkBowl/VaultAPI
+  PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
+  ProtocolLib: dmulloy2/ProtocolLib
+  Towny: TownyAdvanced/Towny
+  DiscordSRV: DiscordSRV/DiscordSRV
+  LuckPerms: LuckPerms/LuckPerms
+  AuthMe: AuthMe/AuthMeReloaded
+  Essentials: EssentialsX/Essentials
+  Factions: MassiveCraft/Factions

@@ -29,3 +29,19 @@ extra_rules: |
   - Economy: Experience -> Levels -> Nuggets (conversion ratio configurable) -> Rewards/Upgrades
 
 docs_url: "https://docs.mineacademy.org/corearena/"
+
+known_dependencies:
+  Citizens: CitizensDev/CitizensAPI
+  Vault: MilkBowl/VaultAPI
+  mcMMO: mcMMO-Dev/mcMMO
+  Jobs: Zrips/Jobs
+  WorldEdit: EngineHub/WorldEdit
+  WorldGuard: EngineHub/WorldGuard
+  PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
+  ProtocolLib: dmulloy2/ProtocolLib
+  Towny: TownyAdvanced/Towny
+  DiscordSRV: DiscordSRV/DiscordSRV
+  LuckPerms: LuckPerms/LuckPerms
+  AuthMe: AuthMe/AuthMeReloaded
+  Essentials: EssentialsX/Essentials
+  Factions: MassiveCraft/Factions

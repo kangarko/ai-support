@@ -28,3 +28,16 @@ extra_rules: |
   - NOT compatible with Folia or Luminol
 
 docs_url: "https://docs.mineacademy.org/winter/"
+
+known_dependencies:
+  ProtocolLib: dmulloy2/ProtocolLib
+  WorldEdit: EngineHub/WorldEdit
+  WorldGuard: EngineHub/WorldGuard
+  Vault: MilkBowl/VaultAPI
+  PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
+  Towny: TownyAdvanced/Towny
+  DiscordSRV: DiscordSRV/DiscordSRV
+  LuckPerms: LuckPerms/LuckPerms
+  AuthMe: AuthMe/AuthMeReloaded
+  Essentials: EssentialsX/Essentials
+  Factions: MassiveCraft/Factions
