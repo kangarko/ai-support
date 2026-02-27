@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from copilot import CopilotClient, define_tool
+from copilot import CopilotClient, PermissionHandler, define_tool
 
 MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
@@ -1280,6 +1280,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         "system_message": {"content": system_prompt},
         "tools": tools,
         "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+        "on_permission_request": PermissionHandler.approve_all,
     })
 
     try:
@@ -1767,6 +1768,7 @@ Read the most relevant skill files and source files listed above. Write importan
             "system_message": {"content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+            "on_permission_request": PermissionHandler.approve_all,
             "infinite_sessions": {
                 "enabled": True,
                 "background_compaction_threshold": 0.80,
