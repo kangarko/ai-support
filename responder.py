@@ -902,47 +902,75 @@ class FetchUrlParams(BaseModel):
     url: str = Field(description="The URL to fetch content from")
 
 
-_PASTE_REWRITES = [
-    (re.compile(r"^https?://mclogs\.minestrator\.com/([A-Za-z0-9]+)$"),      r"https://api.mclogs.minestrator.com/1/raw/\1"),
-    (re.compile(r"^https?://api\.mclo\.gs/1/raw/([A-Za-z0-9]+)$"),           None),
-    (re.compile(r"^https?://mclo\.gs/([A-Za-z0-9]+)$"),                      r"https://api.mclo.gs/1/raw/\1"),
-    (re.compile(r"^https?://pastebin\.com/(?!raw/)([A-Za-z0-9]+)$"),         r"https://pastebin.com/raw/\1"),
-    (re.compile(r"^https?://hastebin\.com/(?!raw/)([A-Za-z0-9]+)$"),         r"https://hastebin.com/raw/\1"),
-    (re.compile(r"^https?://paste\.helpch\.at/(?!raw/)([A-Za-z0-9]+)$"),     r"https://paste.helpch.at/raw/\1"),
-    (re.compile(r"^https?://bytebin\.lucko\.me/([A-Za-z0-9]+)$"),            r"https://bytebin.lucko.me/\1"),
-    (re.compile(r"^https?://paste\.ubuntu\.com/p/([A-Za-z0-9]+)/?\??$"),     r"https://paste.ubuntu.com/p/\1/plain/"),
-]
+def _is_html(content):
+    start = content[:500].lstrip()
+    return start.startswith(("<!DOCTYPE", "<!doctype", "<html", "<HTML"))
 
 
-def _rewrite_paste_url(url):
-    for pattern, replacement in _PASTE_REWRITES:
-        if pattern.match(url):
-            if replacement is None:
-                return url
+def _extract_links(html, source_url):
+    seen   = set()
+    links  = []
+    parsed = urllib.parse.urlparse(source_url)
 
-            return pattern.sub(replacement, url)
+    for match in re.finditer(r'href=["\']([^"\']+)["\']', html[:15_000]):
+        href = match.group(1)
 
-    return url
+        if href.startswith("#") or href.startswith("javascript:"):
+            continue
+
+        if re.match(r".*\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot)(\?.*)?$", href, re.IGNORECASE):
+            continue
+
+        if href.startswith("//"):
+            href = "https:" + href
+        elif href.startswith("/"):
+            href = f"{parsed.scheme}://{parsed.netloc}{href}"
+        elif not href.startswith("http"):
+            href = source_url.rstrip("/") + "/" + href
+
+        clean = href.split("#")[0]
+
+        if clean not in seen and clean != source_url and clean != source_url.rstrip("/"):
+            seen.add(clean)
+            links.append(clean)
+
+    return links[:20]
 
 
-@define_tool(description="Fetch content from a URL and return it as text. Use this to read documentation pages, wiki articles, GitHub READMEs, or links referenced in issues.")
+def _http_get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (GitHub-AI-Support-Bot)"})
+
+    with urllib.request.urlopen(req, timeout=MAX_FETCH_TIMEOUT) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+@define_tool(description="Fetch content from a URL and return it as text. If the page is HTML (e.g. a paste site with JS-rendered content), it returns the links found on the page so you can identify and fetch the raw/API/plain-text URL instead.")
 def fetch_url(params: FetchUrlParams) -> str:
     url = params.url.strip()
 
     if not url.startswith(("https://", "http://")):
         return "Error: URL must start with https:// or http://"
 
-    url = _rewrite_paste_url(url)
-
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (GitHub-AI-Support-Bot)"})
-        with urllib.request.urlopen(req, timeout=MAX_FETCH_TIMEOUT) as resp:
-            content = resp.read().decode("utf-8", errors="replace")
+        content = _http_get(url)
 
-            if len(content) > MAX_FETCH_SIZE:
-                content = content[:MAX_FETCH_SIZE] + f"\n... (truncated at {MAX_FETCH_SIZE:,} characters)"
+        if _is_html(content):
+            links = _extract_links(content, url)
 
-            return content
+            parts = [f"This URL returned an HTML page, not raw text. The content may be loaded via JavaScript."]
+
+            if links:
+                parts.append("\nLinks found on the page (try fetching a raw/api/plain URL):")
+
+                for link in links:
+                    parts.append(f"  - {link}")
+
+            return "\n".join(parts)
+
+        if len(content) > MAX_FETCH_SIZE:
+            content = content[:MAX_FETCH_SIZE] + f"\n... (truncated at {MAX_FETCH_SIZE:,} characters)"
+
+        return content
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")[:500]
         return f"Error: HTTP {e.code} fetching {url}: {body}"
