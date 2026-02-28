@@ -902,12 +902,37 @@ class FetchUrlParams(BaseModel):
     url: str = Field(description="The URL to fetch content from")
 
 
+_PASTE_REWRITES = [
+    (re.compile(r"^https?://mclogs\.minestrator\.com/([A-Za-z0-9]+)$"),      r"https://api.mclogs.minestrator.com/1/raw/\1"),
+    (re.compile(r"^https?://api\.mclo\.gs/1/raw/([A-Za-z0-9]+)$"),           None),
+    (re.compile(r"^https?://mclo\.gs/([A-Za-z0-9]+)$"),                      r"https://api.mclo.gs/1/raw/\1"),
+    (re.compile(r"^https?://pastebin\.com/(?!raw/)([A-Za-z0-9]+)$"),         r"https://pastebin.com/raw/\1"),
+    (re.compile(r"^https?://hastebin\.com/(?!raw/)([A-Za-z0-9]+)$"),         r"https://hastebin.com/raw/\1"),
+    (re.compile(r"^https?://paste\.helpch\.at/(?!raw/)([A-Za-z0-9]+)$"),     r"https://paste.helpch.at/raw/\1"),
+    (re.compile(r"^https?://bytebin\.lucko\.me/([A-Za-z0-9]+)$"),            r"https://bytebin.lucko.me/\1"),
+    (re.compile(r"^https?://paste\.ubuntu\.com/p/([A-Za-z0-9]+)/?\??$"),     r"https://paste.ubuntu.com/p/\1/plain/"),
+]
+
+
+def _rewrite_paste_url(url):
+    for pattern, replacement in _PASTE_REWRITES:
+        if pattern.match(url):
+            if replacement is None:
+                return url
+
+            return pattern.sub(replacement, url)
+
+    return url
+
+
 @define_tool(description="Fetch content from a URL and return it as text. Use this to read documentation pages, wiki articles, GitHub READMEs, or links referenced in issues.")
 def fetch_url(params: FetchUrlParams) -> str:
     url = params.url.strip()
 
     if not url.startswith(("https://", "http://")):
         return "Error: URL must start with https:// or http://"
+
+    url = _rewrite_paste_url(url)
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (GitHub-AI-Support-Bot)"})
