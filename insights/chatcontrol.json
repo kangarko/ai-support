@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "proxy-sync",
+    "insight": "Hybrid server software (Arclight, Mohist, etc.) often breaks Bukkit's plugin messaging channel used for proxy sync. A key diagnostic pattern: if messages work FROM the hybrid server TO Paper but NOT the reverse, the hybrid server's inbound PluginMessageListener delivery is broken. This is a platform limitation, not a ChatControl bug. Direct users to report to their hybrid server's issue tracker.",
+    "related_skill": "proxy-sync",
+    "scope": "project",
+    "date": "2026-02-28",
+    "issue": 3415
   }
 ]
