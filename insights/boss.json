@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "skills-drops",
+    "insight": "The error \"Each entry in Drops.Player must be a list of Tuples, not a LinkedHashMap\" means the boss config was created with an older Boss version that stored player drops as flat Map<ItemStack, Double> entries. The current version expects List of Tuples. Fix: add a migration path in Boss.loadPlayerDrops() that checks `rawOrder instanceof Map` and converts entries directly instead of throwing.",
+    "related_skill": "skills-drops",
+    "scope": "project",
+    "date": "2026-02-28",
+    "issue": 1481
+  }
+]
