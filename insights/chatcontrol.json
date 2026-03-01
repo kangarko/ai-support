@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "mute-warn",
+    "insight": "ChatControl has a built-in LiteBans mute integration (`LitebansTask`) that polls the LiteBans database every 2 seconds \u2014 `Chat_Listener_Priority` is irrelevant for LiteBans mute enforcement. If LiteBans mutes aren't blocking chat, check startup console for \"LiteBans API not found\" or \"Failed to hook into LiteBans\" messages indicating the hook failed to initialize.",
+    "related_skill": "mute-warn",
+    "scope": "project",
+    "date": "2026-03-01",
+    "issue": 3497
   }
 ]
