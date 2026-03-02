@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "mute-warn",
+    "insight": "LiteBans stores UUIDs without dashes in its database. The LitebansTask mute cache was comparing dashless DB UUIDs against UUID.toString() (which includes dashes), causing mute detection to always fail. Fix: normalize both sides by stripping dashes.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-03-02",
+    "issue": 3497
+  }
+]

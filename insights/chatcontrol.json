@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "mute-warn",
+    "insight": "LiteBans mute integration failures are NOT caused by `Chat_Listener_Priority` \u2014 ChatControl checks mutes via an internal polling cache, independent of event priority. A UUID format mismatch bug (LiteBans stores dashless UUIDs, lookup used `UUID.toString()` with dashes) was fixed in Foundation's `LitebansTask.java`.",
+    "related_skill": "mute-warn",
+    "scope": "project",
+    "date": "2026-03-02",
+    "issue": 3497
   }
 ]
