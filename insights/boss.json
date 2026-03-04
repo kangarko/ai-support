@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "bosses",
+    "insight": "The error `org.snakeyaml.engine.v2.exceptions.YamlEngineException: Non scalar key is detected but it is not configured to be allowed` means boss .yml files contain YAML complex keys (the `? ==:` syntax used by older Boss versions for Player drops). This causes bosses to silently fail to load after updating. The fix is updating to Boss 5.8.4+ which includes automatic migration of the old format. Users will report \"bosses disappeared\" but the .yml files are still on disk \u2014 they just fail to parse.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-03-04",
+    "issue": 1483
+  }
+]
