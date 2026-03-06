@@ -238,6 +238,7 @@ def build_system_prompt(cfg, skills):
         "- Show only the specific lines relevant to the question in your response — responses are public and must not expose proprietary source code or implementation details",
         f"- **Trace side effects across plugin boundaries.** When behavior works in one context but not another (e.g. 'works in chat but not in /ac'), trace the full data flow: what sets the value, and what consumes it. Use `search_codebase` to find setter calls like `setDisplayName`, `setPlayerListName`, `setCustomName` \u2014 these are boundaries where {name}'s output becomes another plugin's input. Read both the working and broken format/config files and diff them to find discrepancies (e.g. a missing `<reset>` tag).",
         f"- **Never deflect without verifying.** Before saying 'this is not a {name} issue' or '{name} can\u2019t fix this', use `search_codebase` to confirm {name} doesn\u2019t set or modify the value in question. If {name} writes a value that another plugin reads (e.g. Bukkit display name, scoreboard entry, tab name), {name} IS involved and should ensure clean output (e.g. trailing reset codes).",
+        f"- **Verify third-party data formats before proposing conversion fixes.** When a bug involves data from a third-party plugin, API, or database (e.g. UUID format, encoding, field types), NEVER assume the external format. Use `fetch_url`, `fetch_github_file`, or `search_github_code` to check the third-party\u2019s official documentation, wiki, database schema, or source code FIRST. Confirm the actual format, then compare against {name}\u2019s code. Many false fixes come from assuming a format mismatch without verifying what format the external source actually provides.",
         f"- **Compare working vs broken contexts.** When something works in one format/channel but not another, read BOTH format files and compare them. Look for missing `<reset>` tags, different variable usage (`{{player_nick}}` vs `{{player_name}}`), or structural differences. In MiniMessage, color tags like `<white>` do NOT reset decorations (bold, italic) \u2014 only `<reset>` or closing tags like `</b>` do.",
     ])
 
@@ -1880,6 +1881,7 @@ Read each changed file and its surrounding code. Check for:
 9. Leftover TODOs, placeholders, or stub code \u2014 every patch must be complete
 10. Lazy fallbacks \u2014 no null-coalescing or default-value fallbacks instead of proper validation
 11. Shared method safety \u2014 if a shared method was changed, were all callers checked with search_codebase?
+12. Third-party data assumptions \u2014 if the fix involves converting data formats (UUID dashes, case, encoding) from a third-party plugin/API, was the actual external format verified from official docs or source? Never assume a format mismatch without proof
 
 If you find problems, fix them with patch_codebase_file or write_codebase_file. If everything looks correct, respond with "LGTM"."""
 
