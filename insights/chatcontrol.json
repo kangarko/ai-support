@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "messages",
+    "insight": "In PlayerMessage.java's filter() method, a fallback block after the player loop resends the message to `wrappedSender` when no player received it. For timed messages, `wrappedSender` is set as a side effect of `TimedMessagesCheck.setVariablesFor()` during iteration, so this fallback bypasses the toggle/ignore check and sends to the last iterated player. This was fixed by excluding `PlayerMessageType.TIMED` from the fallback condition.",
+    "related_skill": "books-announcements",
+    "scope": "project",
+    "date": "2026-03-07",
+    "issue": 3498
   }
 ]
