@@ -6,5 +6,21 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "variables",
+    "insight": "When `{player_prefix}` is empty despite Vault showing LuckPerms as Chat provider, check for a LuckPerms context mismatch \u2014 prefixes scoped to a specific server won't apply on other backends. Have the user run `/lp user <name> meta info` on the backend server and verify the prefix is in `global` context. The diagnostic command is `/chc info variables <player> {player_prefix}`.",
+    "related_skill": "variables",
+    "scope": "project",
+    "date": "2026-03-08",
+    "issue": 3502
+  },
+  {
+    "topic": "variables",
+    "insight": "`{player_prefix}` (when `Tag.Apply_On` is empty) resolves via Vault's direct Java Chat API (`HookManager.getPlayerPrefix`), NOT through PlaceholderAPI. Installing PAPI's Vault expansion (`/papi ecloud download Vault`) fixes `%vault_prefix%` but won't fix `{player_prefix}` \u2014 those are independent paths.",
+    "related_skill": "variables",
+    "scope": "project",
+    "date": "2026-03-08",
+    "issue": 3502
   }
 ]
