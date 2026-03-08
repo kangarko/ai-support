@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "private-messaging",
+    "insight": "The mail join notification delay in PlayerCache.onJoin() runs AFTER an async database lookup, while MOTD delay (Settings.Motd.DELAY) runs BEFORE its async task. This means their timing models differ: mail total delay = async DB time + Join_Notification_Delay ticks, vs MOTD total delay = Motd.Delay ticks + async formatting. When users report join notifications appearing in wrong order, check these competing async timing chains rather than just comparing tick values.",
+    "related_skill": "private-messaging",
+    "scope": "project",
+    "date": "2026-03-08",
+    "issue": 3500
   }
 ]
