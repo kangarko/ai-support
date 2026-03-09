@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "When mixing legacy ampersand codes (`&f`, `&l`, `&r`) inside MiniMessage tag parameters (e.g., hover text in `<hover:show_text:\"...\">`), `&r` may not properly reset decorations like bold. Users should use MiniMessage closing tags (`</bold>`, `</italic>`) or `<reset>` instead of `&r` inside hover/click tag content. This also applies to the proxy.yml Prefix, which supports MiniMessage via `SimpleComponent.fromMiniAmpersand()`.",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-03-09",
+    "issue": 3505
   }
 ]
