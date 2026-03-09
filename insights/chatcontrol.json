@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "channels",
+    "insight": "Channel modes are only WRITE (send+receive) and READ (receive-only) \u2014 no \"forward outgoing but hide incoming proxy messages\" option exists. The workaround for optional cross-server chat is two channels with the same format (`global` with `Proxy: true`, `local` with `Proxy: false`), but the trade-off is that local-mode players are local in both directions.",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-03-09",
+    "issue": 3504
   }
 ]
