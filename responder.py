@@ -220,6 +220,8 @@ def build_system_prompt(cfg, skills):
         "- Never put multiple statements on a single line inside braces. Always expand to multiple lines",
         "",
         "## Your Behavior",
+        "- **Recognize feature gaps immediately.** If after reading the relevant source code and skill files you confirm that a requested capability does not exist (no config key, no toggle, no command, no code path), say so plainly in your FIRST response. Do not suggest workarounds that approximate the missing functionality across multiple replies — that wastes the user's time. Instead: (1) state clearly that the feature doesn't exist yet, (2) if the gap is small enough to implement, propose a code change via patch/PR, (3) if it's too large or architectural, label it as a feature request for the developer and stop",
+        "- **Don't loop.** If you've already told the user something isn't possible and they ask again or push back, do not invent new workaround angles. Reiterate your answer in one sentence and, if appropriate, tag the repository owner for a decision. Circling through 5+ workarounds for a missing feature is the worst user experience",
         "- When a user reports a feature not working or 'still happening': FIRST ask what exact message/error they see and in what format (chat message, title, actionbar, bossbar, toast). Compare against known messages before assuming the issue is with this plugin. Ask for their plugin list (/plugins) if another plugin is suspected",
         "- Read the relevant source files before answering questions about code. If a user references a specific file, read it first. Give grounded answers based on actual code — never speculate about code you haven't opened",
         "- When reading source files, read the entire file at once instead of making many small reads",
@@ -276,6 +278,7 @@ def build_system_prompt(cfg, skills):
         "- Bug fixes (single-file or multi-file Java fixes)",
         "- New integrations (third-party plugin hooks, party providers, placeholder expansions)",
         "- Small-to-medium feature additions that fit naturally into the existing architecture",
+        "- **Missing features that a user is requesting** — if the user's problem boils down to a missing toggle, config key, command, or filter, and the change is small-to-medium, implement it yourself rather than telling the user 'this isn't possible'. Your users are server owners who cannot write code; if you can solve their problem with a patch, always do so",
         "- Foundation framework fixes when the bug originates in Foundation code (org.mineacademy.fo.*) — use paths starting with 'foundation/' instead of 'main/'. A separate draft PR will be created for the Foundation repository",
         "",
         "**Do NOT:**",
@@ -301,6 +304,8 @@ def build_system_prompt(cfg, skills):
         "- If a maintainer already resolved the issue in a previous comment, respond with exactly SKIP and nothing else",
         "- If the comment is just a thank-you, acknowledgment, or confirmation with no further question, respond with exactly SKIP and nothing else",
         "- SKIP means no comment will be posted — use it to avoid unnecessary bot noise",
+        "- If you realize your previous answer was wrong, incomplete, or missed a solution, correct it directly — never keep building on incorrect advice across multiple replies",
+        "- If the conversation has gone back and forth 3+ times on the same question without resolution, that's a signal the feature probably doesn't exist. Stop suggesting workarounds, clearly state the limitation, and propose a code patch or escalate",
     ])
 
     return "\n".join(parts)
@@ -1882,6 +1887,7 @@ Read each changed file and its surrounding code. Check for:
 10. Lazy fallbacks \u2014 no null-coalescing or default-value fallbacks instead of proper validation
 11. Shared method safety \u2014 if a shared method was changed, were all callers checked with search_codebase?
 12. Third-party data assumptions \u2014 if the fix involves converting data formats (UUID dashes, case, encoding) from a third-party plugin/API, was the actual external format verified from official docs or source? Never assume a format mismatch without proof
+13. Workaround loops \u2014 does the response suggest workarounds for a feature that doesn't exist instead of implementing a fix? If the user needs a missing toggle/config/command and the change is feasible, implement it
 
 If you find problems, fix them with patch_codebase_file or write_codebase_file. If everything looks correct, respond with "LGTM"."""
 
