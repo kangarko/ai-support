@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "books-announcements",
+    "insight": "Users sometimes put `/chc a image ...` command text as the `Message:` value in format files (e.g. motd.yml), expecting it to execute the command and render an image. The `Message:` key in format parts only displays text \u2014 it never executes commands. To display images in formats, use the `Image_File`, `Image_Head`, or `Image_Url` keys on the format part instead (with `Image_Height` to control size). The `/chc a image` command is only for direct console/in-game one-time broadcasts.",
+    "related_skill": "books-announcements",
+    "scope": "project",
+    "date": "2026-03-13",
+    "issue": 3508
   }
 ]
