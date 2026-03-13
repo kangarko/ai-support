@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "topic": "channels",
+    "insight": "Foundation's Remain.runTaskAsync() on Folia used getGlobalRegionScheduler() which runs on the server thread \u2014 not async. Fixed by using getAsyncScheduler() with tick-to-ms conversion (ticks * 50L, TimeUnit.MILLISECONDS). Discord.java's .complete() calls were also changed to non-blocking .queue() as defense-in-depth.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-03-13",
+    "issue": 3506
+  },
+  {
+    "topic": "general",
+    "insight": "On Folia/ShreddedPaper, Foundation's `Remain.runTaskAsync()` used `getGlobalRegionScheduler()` which runs on the server thread, not async. This caused blocking calls (like Discord REST `.complete()`) scheduled via `Platform.runTaskAsync()` to freeze the server. The fix uses `getAsyncScheduler()` with tick-to-ms conversion (`ticks * 50L, TimeUnit.MILLISECONDS`).",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-03-13",
+    "issue": 3506
+  }
+]
