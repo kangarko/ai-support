@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "rules-scanning",
+    "insight": "Confiscated items with non-finite NBT attribute values (\"Infinity\", \"NaN\") cause infinite `Not a number: \"Infinity\"` error spam on startup from `JsonItemStack.fromJson`. Workaround: delete corrupt rows from the database Items table. Fix: Foundation PR #406 sanitizes non-finite values before Mojang codec deserialization.",
+    "related_skill": "rules-scanning",
+    "scope": "global",
+    "date": "2026-03-15",
+    "issue": 70
+  }
+]
