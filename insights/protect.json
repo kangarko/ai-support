@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "topic": "rules-scanning",
+    "insight": "The `Periodic` scan timer is only registered at server startup. If a user changes the `Periodic` setting in settings.yml and runs `/protect reload`, the timer is NOT re-registered \u2014 they must do a full server restart for it to take effect. This is a common reason users report \"periodic scan not working.\"",
+    "related_skill": "rules-scanning",
+    "scope": "project",
+    "date": "2026-03-15",
+    "issue": 68
+  },
+  {
+    "topic": "rules-scanning",
+    "insight": "Creative mode players can bypass item scanning by using Saved Hotbars (shift-clicking in creative inventory) or NBT editor mods. The standard `Inventory_Open` and `Item_Spawn` triggers do NOT catch these \u2014 dedicated creative inventory event handling (InventoryCreativeEvent) and gamemode change scanning are needed. Also, F3+F4 gamemode switching bypasses command-based scan triggers since it's not a command.",
+    "related_skill": "rules-scanning",
+    "scope": "project",
+    "date": "2026-03-15",
+    "issue": 68
+  }
+]
