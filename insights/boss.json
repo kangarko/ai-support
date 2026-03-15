@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "topic": "commands",
+    "insight": "Death commands using `~` relative coordinates fail when the boss dies without a player (Wither effect, fall damage, etc.) because console has no position context. Fix: use `{boss_x}`, `{boss_y}`, `{boss_z}` variables which always resolve from the entity's location. Users commonly guess `{boss_location_x}` \u2014 the correct names are `{boss_x}`, `{boss_y}`, `{boss_z}`.",
+    "related_skill": "commands",
+    "scope": "project",
+    "date": "2026-03-15",
+    "issue": 1484
+  },
+  {
+    "topic": "commands",
+    "insight": "Boss variables like `{boss_x}`, `{boss_name}` are only replaced when commands run through the console path (`Console: true` or no killer). Non-console player commands (`Console: false` with a killer) skip `replaceVariablesLegacy()` entirely, so Boss variables stay as literal text.",
+    "related_skill": "commands",
+    "scope": "project",
+    "date": "2026-03-15",
+    "issue": 1484
+  }
+]
