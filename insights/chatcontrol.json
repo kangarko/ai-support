@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "MiniMessage interactive tags (click, hover) in player messages require both: (1) the context listed in `Colors > Apply_On` in settings.yml (e.g. `private_message`, `chat`) and (2) the `chatcontrol.action.{action_name}` permission. Default `Apply_On` is empty, blocking all MiniMessage tags. Users reporting click/hover abuse should check these two settings.",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-03-15",
+    "issue": 3509
   }
 ]
