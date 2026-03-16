@@ -17,3 +17,4 @@ description: 'Troubleshooting command spy, transaction logging, and database log
 - **Command spy auto-escapes leading `/`** — the initial `/` or `//` is automatically handled in regex patterns. Users don't need to escape it manually
 - **`Transaction_Log` requires full restart** — not just reload. Users report "transactions not logging after changing config" — they need to restart
 - **`/protect export` and `/protect import` require modern MC** — needs `Bukkit.getUnsafe().serializeItemAsJson()` support. Older MC versions will error
+- **Hacked items with Infinity/NaN attributes crash DB loading** — items from NBT editors/hacked clients may have `"amount":"Infinity"` in attribute_modifiers. These are valid NBT but Mojang's codec fails to parse them back, causing `IllegalArgumentException: Not a number` repeating every startup. This is a Foundation-level issue in `JsonItemStack.fromJson`. Workaround: delete corrupt rows from the Items table

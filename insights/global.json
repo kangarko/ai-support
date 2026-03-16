@@ -1,1 +1,6 @@
-[]
+[
+  {
+    "topic": "New features with destructive actions must never default to enabled",
+    "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
+  }
+]

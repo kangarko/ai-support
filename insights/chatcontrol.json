@@ -6,5 +6,29 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "image-in-format",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 3508
+  },
+  {
+    "topic": "folia-automode-no-protocollib",
+    "insight": "Auto_Mode on Folia does NOT require ProtocolLib. Auto_Mode uses dispatchCommand('/tell ...') which flows through Foundation's BukkitPlayer.performPlayerCommand0(), which on Folia uses player.getScheduler().run() for correct entity-thread scheduling. The Folia disable check in Settings.java was outdated and can be removed entirely. The ProtocolLib-based conversation fix in BukkitPacketListener is for a completely different feature (Bukkit's Conversation API with player.isConversing()/acceptConversationInput()), NOT for Auto_Mode.",
+    "related_skill": "private-messaging",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 3511
+  },
+  {
+    "topic": "stop-on-first-match-fallback-duplicate",
+    "insight": "When multiple message groups use 'require sender perm' for rank-based messages (e.g. premium, vip, default) and a player has inherited permissions matching all groups, Stop_On_First_Match correctly prevents duplicates in the main player loop. However, the sender-fallback path in PlayerMessage.filter() (line ~849: 'if !pickedMessage && wrappedSender != null') fires per group and did NOT check messageReceivers, causing the sender to receive duplicate messages from each matching group. PR #3513 fixes this by adding a messageReceivers + Stop_On_First_Match check to the fallback condition.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 3510
   }
 ]
