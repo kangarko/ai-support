@@ -1,16 +1,18 @@
 [
   {
-    "issue": 70,
-    "topic": "Infinity attribute modifiers crash DB item loading",
-    "insight": "Hacked items with '\"amount\":\"Infinity\"' in attribute_modifiers are valid NBT but crash Mojang's DataResult codec when Foundation's JsonItemStack.fromJson loads them from the database. The error 'Not a number: Infinity' repeats for every corrupt row on every startup/reload. Fix is at Foundation level (PR #406): sanitize non-finite float strings (Infinity, -Infinity, NaN) to valid numbers before retrying deserialization. Workaround: delete corrupt rows from the Items table in the database."
+    "topic": "rules-scanning",
+    "insight": "FastMatcher supports `#tag` syntax (e.g. `match #swords`, `match #enchantable/armor`) to match items by Minecraft tags via Bukkit's Tag API. Tags are resolved at compile time into a HashSet of material names for O(1) runtime lookup. The items registry is checked first, then blocks. Tags can be combined with regular patterns using `|` (e.g. `#swords|TRIDENT`).",
+    "related_skill": "rules-scanning",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 73
   },
   {
-    "issue": 71,
-    "topic": "Debug shows misleading 'Matched rule' + hacked max-stack-size bypasses unnatural-stack",
-    "insight": "Two bugs: (1) The [scan] debug printed 'Matched rule X' whenever the material pattern matched (match * = every item), misleading users into thinking items violated rules when they were merely being checked. Fixed by changing to 'Checking rule'. (2) On 1.20.5+, hacked items can set a custom max_stack_size component (e.g. 99 on TOTEM_OF_UNDYING). The 'check stack size' operator used ItemStack.getMaxStackSize() which respects the hacked component, so a 99-stack totem with max-stack-size=99 looked 'natural'. Fixed by using Material.getMaxStackSize() which returns the vanilla default (1 for totems). PR #72."
-  },
-  {
-    "topic": "New scan rules and triggers must NEVER default to enabled",
-    "insight": "In 2.7.1 three new scan rules (enchant-conflicting, unbreakable, attribute-modified) shipped enabled by default in rules/main.rs, and two new scan triggers (Gamemode_Change, Creative_Click) defaulted to true in settings.yml. This caused immediate item loss on servers using custom items, RPG plugins, or custom enchantments. Hotfixed in 2.7.3: all rules commented out (kept as examples), triggers set to false. RULE: Any new scan rule with a destructive action (confiscate, strip-nbt, strip-attributes) must ALWAYS ship commented out or disabled. New scan triggers must default to false. Server admins must explicitly opt in to potentially destructive features."
+    "topic": "rules-scanning",
+    "insight": "FastMatcher.compile() is called by multiple callers with different case transformations (FilterItem uses toUpperCase(), FilterCommand uses toLowerCase(), Rule uses raw). Any new pattern syntax added to FastMatcher must be case-resilient since the caller may transform the input before compilation. For Minecraft tag matching (#tag), tag names must be lowercased before passing to NamespacedKey.minecraft() which rejects uppercase characters.",
+    "related_skill": "rules-scanning",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 73
   }
 ]
