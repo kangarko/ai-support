@@ -6,5 +6,13 @@
     "scope": "project",
     "date": "2026-02-15",
     "issue": 3465
+  },
+  {
+    "topic": "private-messaging",
+    "insight": "On Folia servers, PM Auto_Mode is force-disabled because Folia's Conversation API is broken. The workaround requires ProtocolLib specifically (not PacketEvents or other packet libraries) \u2014 Foundation's BukkitPacketListener intercepts chat packets via ProtocolLib and calls player.acceptConversationInput() on the correct thread. ProtocolLib and PacketEvents can coexist. Users on Folia who want Auto_Mode must install ProtocolLib.",
+    "related_skill": "private-messaging",
+    "scope": "project",
+    "date": "2026-03-16",
+    "issue": 3511
   }
 ]
