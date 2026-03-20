@@ -1489,10 +1489,15 @@ def audit_claims_vs_diff(response_text, diff_text):
     """
 
     claim_patterns = [
-        re.compile(r"(?:I'?ve |I have |We'?ve )?(?:added|implemented|created|introduced|included|built)\s+(?:a\s+)?(?:new\s+)?[`\"']?([a-z][\w\s-]{2,40})[`\"']?", re.IGNORECASE),
-        re.compile(r"(?:new|added)\s+(?:operator|check|strip|config\s*key|setting|command|feature)s?[\s:]+[`\"']?([a-z][\w\s-]{2,40})[`\"']?", re.IGNORECASE),
+        re.compile(r"\*\*([a-z][\w\s-]{2,40})\*\*", re.IGNORECASE),
+        re.compile(r"(?:I'?ve |I have |We'?ve )?(?:added|implemented|created|introduced|included|built)\s+(?:a\s+)?(?:new\s+)?[`\"']([a-z][\w\s-]{2,40})[`\"']", re.IGNORECASE),
+        re.compile(r"(?:new|added)\s+(?:operator|check|strip|config\s*key|setting|command|feature)s?[\s:]+[`\"']([a-z][\w\s-]{2,40})[`\"']", re.IGNORECASE),
         re.compile(r"(?:check|strip)\s+([a-z][\w-]{2,30})", re.IGNORECASE),
     ]
+
+    stop_words = {"the", "this", "that", "your", "each", "all", "any", "new",
+                  "the new", "a new", "added", "check", "strip", "operator",
+                  "feature", "setting", "config", "command"}
 
     claims  = []
     matched = set()
@@ -1501,7 +1506,7 @@ def audit_claims_vs_diff(response_text, diff_text):
         for m in pattern.finditer(response_text):
             claim = m.group(1).strip().rstrip(".,;:!)")
 
-            if len(claim) < 3 or claim.lower() in ("the", "this", "that", "your", "each", "all", "any"):
+            if len(claim) < 4 or claim.lower() in stop_words:
                 continue
 
             claim_key = claim.lower().replace(" ", "-").replace("_", "-")
@@ -1551,7 +1556,7 @@ def audit_claims_vs_diff(response_text, diff_text):
         print(f"Diff audit — appending mismatch warning ({len(missing)}/{total} missing)")
         return response_text + warning
 
-    if diff_lines < 20 and total >= 3:
+    if diff_lines < 20 and total >= 3 and len(missing) > 0:
         warning = (
             "\n\n---\n"
             f":warning: **Diff-size warning:** This response claims {total} additions but the "
@@ -1958,7 +1963,7 @@ Read the most relevant skill files and source files listed above. Write importan
         session_config = {
             "model": model,
             "streaming": False,
-            "reasoning_effort": "xhigh",
+            "reasoning_effort": "high",
             "system_message": {"content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
