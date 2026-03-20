@@ -2,5 +2,9 @@
   {
     "topic": "New features with destructive actions must never default to enabled",
     "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
+  },
+  {
+    "topic": "PR diff must match claimed changes exactly",
+    "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
   }
 ]
