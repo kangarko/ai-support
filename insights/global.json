@@ -6,5 +6,9 @@
   {
     "topic": "PR diff must match claimed changes exactly",
     "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
+  },
+  {
+    "topic": "Trace the exact code path before proposing a fix",
+    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
   }
 ]
