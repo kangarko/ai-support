@@ -1,16 +1,10 @@
 [
   {
-    "issue": 70,
-    "topic": "Infinity attribute modifiers crash DB item loading",
-    "insight": "Hacked items with '\"amount\":\"Infinity\"' in attribute_modifiers are valid NBT but crash Mojang's DataResult codec when Foundation's JsonItemStack.fromJson loads them from the database. The error 'Not a number: Infinity' repeats for every corrupt row on every startup/reload. Fix is at Foundation level (PR #406): sanitize non-finite float strings (Infinity, -Infinity, NaN) to valid numbers before retrying deserialization. Workaround: delete corrupt rows from the Items table in the database."
-  },
-  {
-    "issue": 71,
-    "topic": "Debug shows misleading 'Matched rule' + hacked max-stack-size bypasses unnatural-stack",
-    "insight": "Two bugs: (1) The [scan] debug printed 'Matched rule X' whenever the material pattern matched (match * = every item), misleading users into thinking items violated rules when they were merely being checked. Fixed by changing to 'Checking rule'. (2) On 1.20.5+, hacked items can set a custom max_stack_size component (e.g. 99 on TOTEM_OF_UNDYING). The 'check stack size' operator used ItemStack.getMaxStackSize() which respects the hacked component, so a 99-stack totem with max-stack-size=99 looked 'natural'. Fixed by using Material.getMaxStackSize() which returns the vanilla default (1 for totems). PR #72."
-  },
-  {
-    "topic": "New scan rules and triggers must NEVER default to enabled",
-    "insight": "In 2.7.1 three new scan rules (enchant-conflicting, unbreakable, attribute-modified) shipped enabled by default in rules/main.rs, and two new scan triggers (Gamemode_Change, Creative_Click) defaulted to true in settings.yml. This caused immediate item loss on servers using custom items, RPG plugins, or custom enchantments. Hotfixed in 2.7.3: all rules commented out (kept as examples), triggers set to false. RULE: Any new scan rule with a destructive action (confiscate, strip-nbt, strip-attributes) must ALWAYS ship commented out or disabled. New scan triggers must default to false. Server admins must explicitly opt in to potentially destructive features."
+    "topic": "rules-scanning",
+    "insight": "The catch-all `check illegal components` / `then strip-components` strips ALL non-vanilla component keys, including legitimate ones like `custom_name`, `lore`, `custom_data`, and `custom_model_data`. Users enabling it should add `ignore component custom_name|lore|custom_data|custom_model_data` to preserve normal item modifications.",
+    "related_skill": "rules-scanning",
+    "scope": "project",
+    "date": "2026-03-20",
+    "issue": 86
   }
 ]
