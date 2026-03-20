@@ -30,6 +30,7 @@ MAX_DIFF_SIZE         = 400_000
 MAX_FETCH_SIZE        = 800_000
 MAX_FETCH_TIMEOUT     = 15
 MAX_ISSUE_RESULTS     = 10
+MAX_BATCH_PATCHES     = 20
 RESPONSE_FILE         = "response.md"
 CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
@@ -274,9 +275,10 @@ def build_system_prompt(cfg, skills):
         "",
         "**Two tools for writing code:**",
         "- `patch_codebase_file` — **Use this for ALL edits to existing files.** Provide the exact `old_text` to find and `new_text` to replace it with. Include 2-3 lines of unchanged context around the target text so the match is unique. You MUST read the file first to get the exact text.",
+        "- `batch_patch_codebase_files` — **Use this when making 3+ related edits** (e.g. adding a field, its parsing, and its usage). Provide an array of patches in one call. This is more reliable than calling patch_codebase_file many times because all patches are applied atomically and you won't lose track of changes during context compaction.",
         "- `write_codebase_file` — **Only for creating brand-new files** that don't exist yet. Provide the full content.",
         "",
-        "Do not use `write_codebase_file` on an existing file — the tool will reject the call. For existing files, use `patch_codebase_file` to surgically edit only the lines that need to change.",
+        "Do not use `write_codebase_file` on an existing file — the tool will reject the call. For existing files, use `patch_codebase_file` (single edit) or `batch_patch_codebase_files` (multiple edits) to surgically edit only the lines that need to change. When implementing a feature that touches 3+ code locations in the same file or across files, always prefer `batch_patch_codebase_files` to avoid partial implementations.",
         "",
         "**When to propose changes:**",
         "- Config fixes (YAML corrections, missing keys, new config options)",
@@ -854,7 +856,46 @@ class PatchFileParams(BaseModel):
     reason: str = Field(description="Brief explanation of what this change does")
 
 
-@define_tool(description="Edit an existing source/config file in the project or Foundation repository by replacing a specific text snippet. Use this instead of write_codebase_file for all edits to existing files. Path must start with 'main/' or 'foundation/'. The old_text must appear exactly once in the file. Include 2-3 lines of context around the change to ensure uniqueness.")
+class SinglePatch(BaseModel):
+    path: str = Field(description="Relative file path within main/ or foundation/")
+    old_text: str = Field(description="The exact text to find (must match uniquely). Include 2-3 lines of context.")
+    new_text: str = Field(description="The replacement text")
+    reason: str = Field(description="Brief explanation of this change")
+
+
+class BatchPatchParams(BaseModel):
+    patches: list[SinglePatch] = Field(description="Array of patch operations to apply sequentially. Each has path, old_text, new_text, reason.")
+
+
+@define_tool(description="Apply multiple file edits in a single call. Use this instead of calling patch_codebase_file repeatedly when you need to make several related changes. Each patch follows the same rules as patch_codebase_file: path must start with 'main/' or 'foundation/', old_text must match exactly once, include 2-3 lines of context. Maximum 20 patches per call.")
+def batch_patch_codebase_files(params: BatchPatchParams) -> str:
+    if len(params.patches) > MAX_BATCH_PATCHES:
+        return f"Error: Too many patches ({len(params.patches)}). Maximum is {MAX_BATCH_PATCHES}."
+
+    results  = []
+    failures = 0
+
+    for i, patch in enumerate(params.patches):
+        single = PatchFileParams(path=patch.path, old_text=patch.old_text, new_text=patch.new_text, reason=patch.reason)
+        result = patch_codebase_file(single)
+        prefix = f"[{i + 1}/{len(params.patches)}] {patch.path}"
+
+        if result.startswith("Error"):
+            results.append(f"{prefix}: FAILED — {result}")
+            failures += 1
+        else:
+            results.append(f"{prefix}: OK — {result}")
+
+    summary = f"\nBatch complete: {len(params.patches) - failures}/{len(params.patches)} succeeded"
+
+    if failures:
+        summary += f", {failures} failed"
+
+    results.append(summary)
+    return "\n".join(results)
+
+
+@define_tool(description="Edit an existing source/config file in the project or Foundation repository by replacing a specific text snippet. Use this instead of write_codebase_file for all edits to existing files. Path must start with 'main/' or 'foundation/'. The old_text must appear exactly once in the file. Include 2-3 lines of context around the change to ensure uniqueness. When making multiple related edits, prefer batch_patch_codebase_files instead.")
 def patch_codebase_file(params: PatchFileParams) -> str:
     target = _resolve_write_target(params.path)
 
@@ -1438,6 +1479,90 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
     return candidate
 
 
+def audit_claims_vs_diff(response_text, diff_text):
+    """Deterministic post-hoc audit: strip claims from response that aren't backed by the diff.
+
+    Detects phrases like 'I've added X', 'Added new X operator', 'Implemented X' and
+    verifies the claimed feature name appears somewhere in the diff. If the diff is
+    suspiciously small relative to the number of claims, appends a warning.
+    Returns the (possibly modified) response text.
+    """
+
+    claim_patterns = [
+        re.compile(r"(?:I'?ve |I have |We'?ve )?(?:added|implemented|created|introduced|included|built)\s+(?:a\s+)?(?:new\s+)?[`\"']?([a-z][\w\s-]{2,40})[`\"']?", re.IGNORECASE),
+        re.compile(r"(?:new|added)\s+(?:operator|check|strip|config\s*key|setting|command|feature)s?[\s:]+[`\"']?([a-z][\w\s-]{2,40})[`\"']?", re.IGNORECASE),
+        re.compile(r"(?:check|strip)\s+([a-z][\w-]{2,30})", re.IGNORECASE),
+    ]
+
+    claims  = []
+    matched = set()
+
+    for pattern in claim_patterns:
+        for m in pattern.finditer(response_text):
+            claim = m.group(1).strip().rstrip(".,;:!)")
+
+            if len(claim) < 3 or claim.lower() in ("the", "this", "that", "your", "each", "all", "any"):
+                continue
+
+            claim_key = claim.lower().replace(" ", "-").replace("_", "-")
+
+            if claim_key not in matched:
+                matched.add(claim_key)
+                claims.append({"text": claim, "key": claim_key, "span": m.span()})
+
+    if not claims:
+        return response_text
+
+    diff_lower    = diff_text.lower() if diff_text else ""
+    missing       = []
+    present_count = 0
+
+    for c in claims:
+        key_variants = [
+            c["key"],
+            c["key"].replace("-", "_"),
+            c["key"].replace("-", ""),
+            c["text"].lower(),
+        ]
+
+        found = any(v in diff_lower for v in key_variants)
+
+        if found:
+            present_count += 1
+        else:
+            missing.append(c["text"])
+
+    diff_lines = len(diff_text.splitlines()) if diff_text else 0
+    total      = len(claims)
+
+    print(f"Diff audit — {total} claims, {present_count} in diff, {len(missing)} missing, diff={diff_lines} lines")
+
+    if missing:
+        print(f"Diff audit — MISSING from diff: {missing}")
+
+    if len(missing) > total * 0.5 and total >= 3:
+        warning = (
+            "\n\n---\n"
+            ":warning: **Partial implementation warning:** This response describes features "
+            "that may not be fully present in the proposed code changes. The following claimed "
+            f"additions could not be verified in the diff: {', '.join(f'`{m}`' for m in missing[:10])}. "
+            "Please review the PR diff carefully before merging."
+        )
+        print(f"Diff audit — appending mismatch warning ({len(missing)}/{total} missing)")
+        return response_text + warning
+
+    if diff_lines < 20 and total >= 3:
+        warning = (
+            "\n\n---\n"
+            f":warning: **Diff-size warning:** This response claims {total} additions but the "
+            f"diff is only {diff_lines} lines. Please review carefully."
+        )
+        print(f"Diff audit — appending size warning ({total} claims, {diff_lines} lines)")
+        return response_text + warning
+
+    return response_text
+
+
 def get_git_diff():
     diffs = []
 
@@ -1489,7 +1614,7 @@ DECLINED_NOTICE = """
 ## CRITICAL: Feature Declined
 A maintainer or collaborator has explicitly declined or rejected this feature request in the conversation above. You MUST NOT:
 - Propose code changes, patches, or pull requests
-- Use write_codebase_file or patch_codebase_file
+- Use write_codebase_file, patch_codebase_file, or batch_patch_codebase_files
 - Suggest implementing the requested feature
 
 Instead, politely explain the decision and answer any remaining questions the user has."""
@@ -1738,7 +1863,7 @@ async def run():
 
     all_tools = [
         read_codebase_file, search_codebase, list_directory,
-        write_codebase_file, patch_codebase_file,
+        write_codebase_file, patch_codebase_file, batch_patch_codebase_files,
         fetch_url, search_github_issues, get_github_issue,
         search_github_code, fetch_github_file, close_pull_request,
         store_insight, write_working_note, read_working_notes,
@@ -1788,7 +1913,7 @@ async def run():
 
             if intent == "declined":
                 print("Intent: DECLINED — stripping write tools")
-                all_tools    = [t for t in all_tools if t not in (write_codebase_file, patch_codebase_file)]
+                all_tools    = [t for t in all_tools if t not in (write_codebase_file, patch_codebase_file, batch_patch_codebase_files)]
                 system_prompt += DECLINED_NOTICE
 
             thread = format_conversation(body, conversation)
@@ -1833,6 +1958,7 @@ Read the most relevant skill files and source files listed above. Write importan
         session_config = {
             "model": model,
             "streaming": False,
+            "reasoning_effort": "xhigh",
             "system_message": {"content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
@@ -1896,13 +2022,15 @@ Read each changed file and its surrounding code. Check for:
 13. Workaround loops \u2014 does the response suggest workarounds for a feature that doesn't exist instead of implementing a fix? If the user needs a missing toggle/config/command and the change is feasible, implement it
 14. Promise-delivery mismatch \u2014 does the response text claim features, operators, config keys, or capabilities that are NOT present in the diff? Every claimed addition must have corresponding code. If the response says "I've added check X" but the diff has no such operator, either implement it or rewrite the response to remove the false claim
 
-If you find problems, fix them with patch_codebase_file or write_codebase_file. If everything looks correct, respond with "LGTM"."""
+If you find problems, fix them with patch_codebase_file, batch_patch_codebase_files, or write_codebase_file. If everything looks correct, respond with "LGTM"."""
 
                     try:
                         review_result = await send_prompt(session, review_prompt, timeout=600)
                         print(f"Phase 2 \u2014 complete: {review_result[:200]}")
                     except Exception as e:
                         print(f"Warning: Phase 2 self-review failed \u2014 {e}")
+
+                text = audit_claims_vs_diff(text, diff_output)
 
             if not (is_reply and text.strip().upper().startswith("SKIP")):
                 print("Phase 3 \u2014 extracting insights")

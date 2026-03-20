@@ -117,7 +117,7 @@ jobs:
           node-version: "20"
 
       - name: Install Copilot CLI
-        run: npm install -g @github/copilot@0.0.414
+        run: npm install -g @github/copilot@0.0.420
 
       - name: Setup Python
         uses: actions/setup-python@v5
