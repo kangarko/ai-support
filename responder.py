@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from copilot import CopilotClient, PermissionHandler, define_tool
+from copilot import CopilotClient, PermissionHandler, SubprocessConfig, define_tool
 
 MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
@@ -652,15 +652,6 @@ def extract_last_response(messages, min_length=10):
             return text
 
     return ""
-
-
-def resolve_cli_path():
-    cli_path = shutil.which("copilot")
-
-    if not cli_path:
-        raise RuntimeError("Copilot CLI executable was not found on PATH.")
-
-    return cli_path
 
 
 def validate_path(path_str):
@@ -1383,18 +1374,18 @@ def read_working_notes(params: ReadNotesParams) -> str:
 
 
 async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10):
-    session = await client.create_session({
-        "model": model,
-        "streaming": False,
-        "system_message": {"content": system_prompt},
-        "tools": tools,
-        "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
-        "on_permission_request": PermissionHandler.approve_all,
-    })
+    session = await client.create_session(
+        on_permission_request=PermissionHandler.approve_all,
+        model=model,
+        streaming=False,
+        system_message={"mode": "replace", "content": system_prompt},
+        tools=tools,
+        excluded_tools=EXCLUDED_BUILTIN_TOOLS,
+    )
 
     try:
         try:
-            await session.send_and_wait({"prompt": user_prompt}, timeout=float(timeout))
+            await session.send_and_wait(user_prompt, timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
             raise RuntimeError(f"Session timed out after {timeout}s")
         except Exception as e:
@@ -1428,7 +1419,7 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
 
     try:
         send_task = asyncio.create_task(
-            session.send_and_wait({"prompt": prompt}, timeout=float(timeout))
+            session.send_and_wait(prompt, timeout=float(timeout))
         )
 
         while not send_task.done():
@@ -1875,13 +1866,9 @@ async def run():
     ]
     model = "claude-opus-4.6"
 
-    cli_path = resolve_cli_path()
-    print(f"Using Copilot CLI: {cli_path}")
-
-    client = CopilotClient({
-        "cli_path": cli_path,
-        "github_token": token,
-    })
+    client = CopilotClient(SubprocessConfig(
+        github_token=token,
+    ))
     await client.start()
 
     try:
@@ -1960,14 +1947,14 @@ Read the most relevant skill files and source files, then respond to the latest 
 
 Read the most relevant skill files and source files listed above. Write important findings to your working scratchpad as you go. Then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
 
-        session_config = {
+        session_kwargs = {
+            "on_permission_request": PermissionHandler.approve_all,
             "model": model,
             "streaming": False,
             "reasoning_effort": "high",
-            "system_message": {"content": system_prompt},
+            "system_message": {"mode": "replace", "content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
-            "on_permission_request": PermissionHandler.approve_all,
             "infinite_sessions": {
                 "enabled": True,
                 "background_compaction_threshold": 0.80,
@@ -1975,7 +1962,7 @@ Read the most relevant skill files and source files listed above. Write importan
             },
         }
 
-        session = await client.create_session(session_config)
+        session = await client.create_session(**session_kwargs)
 
         try:
             print("Phase 1 \u2014 generating response")
@@ -1986,7 +1973,7 @@ Read the most relevant skill files and source files listed above. Write importan
                 print(f"Phase 1 \u2014 failed: {phase1_err}, retrying with fresh session")
                 await session.destroy()
 
-                session = await client.create_session(session_config)
+                session = await client.create_session(**session_kwargs)
                 text = await send_prompt(session, user_prompt)
 
             print(f"Phase 1 \u2014 complete: {text[:200]}")

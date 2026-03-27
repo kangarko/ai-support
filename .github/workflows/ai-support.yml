@@ -111,14 +111,6 @@ jobs:
           gh api "/repos/${{ github.repository }}/issues/${{ inputs.issue_number }}/comments" \
             --paginate > conversation.json
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Copilot CLI
-        run: npm install -g @github/copilot@0.0.420
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -128,7 +120,10 @@ jobs:
         run: pip install -r ai-support/requirements.txt
 
       - name: Fix bundled CLI permissions
-        run: chmod +x "$(python -c 'import copilot, os; print(os.path.join(os.path.dirname(copilot.__file__), "bin", "copilot"))')"
+        run: |
+          CLI_BIN="$(python -c 'import copilot, os; print(os.path.join(os.path.dirname(copilot.__file__), "bin", "copilot"))')" 
+          chmod +x "$CLI_BIN"
+          echo "Using bundled CLI: $CLI_BIN ($(<"$(dirname "$CLI_BIN")/VERSION"))"
 
       - name: Analyze issue and generate response
         env:
