@@ -1,14 +1,10 @@
 [
   {
-    "topic": "New features with destructive actions must never default to enabled",
-    "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
-  },
-  {
-    "topic": "PR diff must match claimed changes exactly",
-    "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
-  },
-  {
-    "topic": "Trace the exact code path before proposing a fix",
-    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
+    "topic": "chat-formatting",
+    "insight": "CompChatColor.convertLegacyToMini() uses GENERIC_DOMAIN_PATTERN which treats `*` as a URL delimiter and short TLDs like `in`, `to`, `me`. Player text like `\u00a7f*in shop` gets falsely matched as a domain, skipping legacy\u2192MiniMessage conversion and crashing the parser. The safety net in fromMiniNative() (PR #3519) catches remaining \u00a7 codes, but the root cause is the overly broad domain pattern.",
+    "related_skill": "chat-formatting",
+    "scope": "global",
+    "date": "2026-03-27",
+    "issue": 3519
   }
 ]
