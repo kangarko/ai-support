@@ -1401,7 +1401,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
 
         return candidate
     finally:
-        await session.destroy()
+        await session.disconnect()
 
 
 STALL_TIMEOUT = 300
@@ -1971,7 +1971,7 @@ Read the most relevant skill files and source files listed above. Write importan
                 text = await send_prompt(session, user_prompt)
             except Exception as phase1_err:
                 print(f"Phase 1 \u2014 failed: {phase1_err}, retrying with fresh session")
-                await session.destroy()
+                await session.disconnect()
 
                 session = await client.create_session(**session_kwargs)
                 text = await send_prompt(session, user_prompt)
@@ -2088,7 +2088,7 @@ Issue #{issue_number}: {title}"""
                 else:
                     print("Phase 3 \u2014 no new insights")
         finally:
-            await session.destroy()
+            await session.disconnect()
 
         if written_files:
             main_files       = [wf for wf in written_files if wf["path"].startswith(MAIN_DIR + "/")]

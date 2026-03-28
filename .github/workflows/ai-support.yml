@@ -76,20 +76,20 @@ jobs:
     steps:
       - name: Generate app token
         id: app_token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           repositories: ChatControl,Boss,CoreArena,Protect,Winter-Src,ai-support,foundation
 
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ steps.app_token.outputs.token }}
           path: main
 
       - name: Checkout Foundation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: kangarko/foundation
           ref: v7
@@ -97,7 +97,7 @@ jobs:
           path: foundation
 
       - name: Checkout AI support
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: kangarko/ai-support
           token: ${{ steps.app_token.outputs.token }}
@@ -112,7 +112,7 @@ jobs:
             --paginate > conversation.json
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -267,10 +267,19 @@ jobs:
             --repo "${{ github.repository }}" \
             --body-file response.md
 
+      - name: Regenerate app token for failure comment
+        id: failure_token
+        if: "failure() && hashFiles('failure.md') != ''"
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: ChatControl,Boss,CoreArena,Protect,Winter-Src,ai-support,foundation
+
       - name: Post failure diagnostic
         if: "failure() && hashFiles('failure.md') != ''"
         env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ steps.failure_token.outputs.token }}
         run: |
           gh issue comment "${{ inputs.issue_number }}" \
             --repo "${{ github.repository }}" \
