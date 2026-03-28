@@ -1,14 +1,10 @@
 [
   {
-    "topic": "New features with destructive actions must never default to enabled",
-    "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
-  },
-  {
-    "topic": "PR diff must match claimed changes exactly",
-    "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
-  },
-  {
-    "topic": "Trace the exact code path before proposing a fix",
-    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
+    "topic": "chat-formatting",
+    "insight": "`CompChatColor.convertLegacyToMini()` can fail to convert `\u00a7` codes when its `GENERIC_DOMAIN_PATTERN` falsely matches player text (e.g. `\u00a7f*in` triggers domain detection because `*` is a domain separator and `in` is a TLD). Surviving `\u00a7` codes crash MiniMessage with \"Legacy formatting codes have been detected\". The fix is stripping `\u00a7[code]` in `fromMiniNative()` before parsing.",
+    "related_skill": "chat-formatting",
+    "scope": "global",
+    "date": "2026-03-28",
+    "issue": 3523
   }
 ]
