@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "database",
+    "insight": "\"Unable to find cached database player (db loaded? false)\" in async code paths (e.g. Spy broadcast from `Channel.sendMessage`) is a race condition \u2014 a player disconnects between the online-player list snapshot and the `PlayerCache.fromCached()` call. High player counts (200+) make this more likely. Fix: use null-safe cache lookups in async iterations.",
+    "related_skill": "database",
+    "scope": "project",
+    "date": "2026-03-30",
+    "issue": 3538
   }
 ]
