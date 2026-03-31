@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "messages",
+    "insight": "Death messages crash with `IllegalArgumentException` when the killer is a non-living entity like AreaEffectCloud (lingering potions). `DeathMessage.getKillerName()` caught only `Error` not `Exception`, so NPE from `Entity.getCustomName()` returning null escaped. Fix: `catch (Throwable)` + null check on name, and `Variables.replaceVariableLegacy()` now warns+converts instead of throwing for unexpected types.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-03-31",
+    "issue": 3549
   }
 ]
