@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "Command rules using `then command` (player commands) can cause StackOverflowError via infinite recursion: the dispatched command fires PlayerCommandPreprocessEvent \u2192 CommandListener \u2192 rule filter \u2192 same rule matches \u2192 dispatches command again. Fixed by adding a recursion guard (Set of player UUIDs currently being filtered) in CommandListener.execute() with try-finally cleanup.",
+    "related_skill": "rules-engine",
+    "scope": "project",
+    "date": "2026-03-31",
+    "issue": 3547
   }
 ]
