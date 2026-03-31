@@ -25,6 +25,10 @@ extra_rules: |
   - The 17 built-in skills are: Arrow, Bomb, Confuse, Disarm, Enderman, Ignite, Fireball, Freeze, Lightning, Minions, Potions, StealLife, Teleport, Throw, Commands, Commands_Nearby, Commands_Target
   - The 5 spawn rule types are: LOCATION_PERIOD, RESPAWN_AFTER_DEATH, REGION_ENTER, PERIOD, REPLACE_VANILLA
   - Boss supports Citizens NPC integration and ModelEngine custom models
+  - Boss has TWO pathfinder/targeting systems for making any mob (including passive) hostile:
+    1. Native Paper Goal API (Paper 1.15.2+): Set "Native_Attack_Goal_Enabled: true" in the boss YAML or toggle via menu Settings → Pathfinders → Native → Attack Goal. This injects GoalPlayerTarget (find nearest player within 16 blocks) and GoalMeleeAttackPlayer (pathfind + melee attack) using Paper's com.destroystokyo.paper.entity.ai.Goal API. It also registers ATTACK_DAMAGE attribute if missing. Works on ANY mob type including passive mobs (cow, pig, fox, etc.)
+    2. Citizens NPC integration: Set Citizens.Goal_Target_Enabled + Citizens.Goal_Target_Aggressive in the boss YAML. This uses Citizens' Navigator API with BossTargetNearbyEntityGoal to target configurable entity types within a radius
+  - The Native Goal system is checked via GoalManagerCheck which verifies com.destroystokyo.paper.entity.ai.Goal class and Bukkit.getMobGoals() method exist
 
 docs_url: "https://docs.mineacademy.org/boss/"
 
