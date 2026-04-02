@@ -20,6 +20,7 @@ purchase_links:
     url: "https://builtbybit.com/resources/boss.21619/"
 
 extra_rules: |
+  - Never change pronouns (his, himself, etc.) in code, messages, or lang files. Keep original gendered language as-is
   - Boss config files for individual bosses are stored in the server's Boss/bosses/ folder at runtime, NOT in the source resources directory
   - Each boss is a YAML file with sections: Type, Alias, Health, Attributes, Equipment, Drops, Skills, Commands
   - The 17 built-in skills are: Arrow, Bomb, Confuse, Disarm, Enderman, Ignite, Fireball, Freeze, Lightning, Minions, Potions, StealLife, Teleport, Throw, Commands, Commands_Nearby, Commands_Target
