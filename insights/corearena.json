@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "classes-rewards",
+    "insight": "Users often don't realize CoreArena has Vault integration. The Gold item (`/arena items`) converts nuggets to economy money via Vault. The conversion ratio is set in `Experience.Gold.Conversion_Ratio` in settings.yml. Point users to this when they ask about economy integration.",
+    "related_skill": "classes-rewards",
+    "scope": "project",
+    "date": "2026-04-02",
+    "issue": 601
+  }
+]
