@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "arenas",
+    "insight": "`getAliveMonsters()` originally counted ALL aggressive entities in the arena region \u2014 not just CoreArena-spawned ones. Non-Tameable pets/summons from third-party plugins block phase advancement. Fix (#596): wave-spawned mobs are now tagged with `CoreArenaSpawned` metadata and only those are counted. Note that `EntityUtil.isAggressive()` already excludes `Tameable` entities, so vanilla tamed pets were never the issue.",
+    "related_skill": "arenas",
+    "scope": "project",
+    "date": "2026-04-02",
+    "issue": 596
+  }
+]
