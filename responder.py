@@ -1421,86 +1421,20 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         await session.disconnect()
 
 
-STALL_TIMEOUT = 120
-
-
-async def _try_extract_partial(session, min_length=10):
-    """Attempt to extract a usable partial response from a stalled session."""
-    try:
-        messages  = await session.get_messages()
-        msg_list  = list(messages)
-        candidate = extract_last_response(msg_list, min_length=min_length)
-
-        if candidate and len(candidate) >= 200:
-            print(f"Recovered partial response ({len(candidate)} chars) from stalled session")
-            return candidate
-    except Exception as e:
-        print(f"Partial extraction failed: {e}")
-
-    return None
-
-
 async def send_prompt(session, prompt, timeout=3600, min_length=10):
-    last_event_time = [asyncio.get_event_loop().time()]
-    event_count     = [0]
-    last_type       = [""]
+    event_count = [0]
 
     def activity_monitor(event):
-        event_count[0]     += 1
-        last_event_time[0]  = asyncio.get_event_loop().time()
-
-        try:
-            etype = str(read_field(read_field(event, "type"), "value") or "")
-
-            if etype != last_type[0]:
-                last_type[0] = etype
-        except Exception:
-            pass
+        event_count[0] += 1
 
     unsubscribe = session.on(activity_monitor)
 
     try:
-        send_task = asyncio.create_task(
-            session.send_and_wait(prompt, timeout=float(timeout))
-        )
-
-        while not send_task.done():
-            done_set, _ = await asyncio.wait({send_task}, timeout=30.0)
-
-            if done_set:
-                break
-
-            stalled = asyncio.get_event_loop().time() - last_event_time[0]
-
-            if stalled >= STALL_TIMEOUT:
-                print(f"Stall detected — {int(stalled)}s silent, {event_count[0]} events total, last_type={last_type[0]}")
-
-                partial = await _try_extract_partial(session, min_length=min_length)
-
-                send_task.cancel()
-
-                try:
-                    await send_task
-                except asyncio.CancelledError:
-                    pass
-
-                if partial:
-                    return partial
-
-                raise RuntimeError(
-                    f"Session stalled — no events for {int(stalled)}s "
-                    f"(events received: {event_count[0]}, last_type={last_type[0]})"
-                )
-
         try:
-            send_task.result()
+            await session.send_and_wait(prompt, timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
             raise RuntimeError(
                 f"Session timed out after {timeout}s (events: {event_count[0]})"
-            )
-        except asyncio.CancelledError:
-            raise RuntimeError(
-                f"Session cancelled (events: {event_count[0]})"
             )
         except Exception as e:
             raise RuntimeError(
@@ -1511,6 +1445,7 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
 
     messages  = await session.get_messages()
     msg_list  = list(messages)
+    print(f"  send_prompt complete — {event_count[0]} events, {len(msg_list)} messages")
     candidate = extract_last_response(msg_list, min_length=min_length)
 
     if not candidate:
@@ -1755,35 +1690,6 @@ Respond with only YES or NO."""
     except Exception as e:
         print(f"Triage — failed ({e}), defaulting to respond")
         return True
-
-
-def _simplify_prompt_for_retry(prompt):
-    """Strip non-essential sections from the prompt to reduce token count for retry."""
-    lines     = prompt.split("\n")
-    out       = []
-    skip_section = False
-
-    for line in lines:
-        if line.startswith("## Available Skill Files"):
-            skip_section = True
-            out.append("## Available Skill Files")
-            out.append("(Skipped for retry — use search_codebase to find relevant code)")
-            continue
-        elif line.startswith("## Learned Insights"):
-            skip_section = True
-            continue
-        elif line.startswith("## ") and skip_section:
-            skip_section = False
-
-        if not skip_section:
-            out.append(line)
-
-    simplified = "\n".join(out)
-
-    if len(simplified) > 60_000:
-        simplified = simplified[:60_000] + "\n... (truncated for retry)"
-
-    return simplified
 
 
 async def run_research_subagent(client, model, class_not_found, known_deps):
@@ -2044,16 +1950,7 @@ Read the most relevant skill files and source files listed above. Write importan
 
         try:
             print("Phase 1 \u2014 generating response")
-
-            try:
-                text = await send_prompt(session, user_prompt)
-            except Exception as phase1_err:
-                print(f"Phase 1 \u2014 failed: {phase1_err}, retrying with fresh session and simplified prompt")
-                await session.disconnect()
-
-                retry_prompt = _simplify_prompt_for_retry(user_prompt)
-                session = await client.create_session(**session_kwargs)
-                text = await send_prompt(session, retry_prompt, timeout=1800)
+            text = await send_prompt(session, user_prompt)
 
             print(f"Phase 1 \u2014 complete: {text[:200]}")
 
