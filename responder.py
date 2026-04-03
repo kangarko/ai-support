@@ -1423,10 +1423,31 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
 
 async def send_prompt(session, prompt, timeout=1800, min_length=10):
     event_count = [0]
+    tool_calls = [0]
+    turns = [0]
+    last_tool = [""]
     timed_out = False
 
     def activity_monitor(event):
         event_count[0] += 1
+        etype = ""
+        try:
+            etype = event.type.value if event.type else ""
+        except Exception:
+            pass
+
+        if etype == "tool.execution_start":
+            tool_calls[0] += 1
+            try:
+                last_tool[0] = event.data.tool_name or ""
+            except Exception:
+                pass
+            if tool_calls[0] % 10 == 0:
+                print(f"  [{tool_calls[0]} tool calls, {event_count[0]} events] last={last_tool[0]}")
+        elif etype == "assistant.turn_start":
+            turns[0] += 1
+            if turns[0] % 5 == 0:
+                print(f"  [turn {turns[0]}, {tool_calls[0]} tool calls, {event_count[0]} events]")
 
     unsubscribe = session.on(activity_monitor)
 
@@ -1434,18 +1455,18 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10):
         try:
             await session.send_and_wait(prompt, timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
-            print(f"  send_and_wait timed out after {timeout}s (events: {event_count[0]}) — extracting partial response")
+            print(f"  send_and_wait timed out after {timeout}s (events: {event_count[0]}, tools: {tool_calls[0]}, turns: {turns[0]}, last_tool: {last_tool[0]}) — extracting partial response")
             timed_out = True
         except Exception as e:
             raise RuntimeError(
-                f"Session failed: {e} (events: {event_count[0]})"
+                f"Session failed: {e} (events: {event_count[0]}, tools: {tool_calls[0]}, turns: {turns[0]})"
             )
     finally:
         unsubscribe()
 
     messages  = await session.get_messages()
     msg_list  = list(messages)
-    print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {len(msg_list)} messages")
+    print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {tool_calls[0]} tool calls, {turns[0]} turns, {len(msg_list)} messages")
     candidate = extract_last_response(msg_list, min_length=min_length)
 
     if not candidate:
