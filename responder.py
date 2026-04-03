@@ -2028,7 +2028,7 @@ Read the most relevant skill files and source files listed above. Write importan
             "on_permission_request": PermissionHandler.approve_all,
             "model": model,
             "streaming": True,
-            "reasoning_effort": "max",
+            "reasoning_effort": "xhigh",
             "system_message": {"mode": "replace", "content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
