@@ -2027,7 +2027,7 @@ Read the most relevant skill files and source files listed above. Write importan
         session_kwargs = {
             "on_permission_request": PermissionHandler.approve_all,
             "model": model,
-            "streaming": False,
+            "streaming": True,
             "reasoning_effort": "high",
             "system_message": {"mode": "replace", "content": system_prompt},
             "tools": all_tools,
