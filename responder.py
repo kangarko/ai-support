@@ -16,7 +16,8 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from copilot import CopilotClient, PermissionHandler, SubprocessConfig, define_tool
+from copilot import CopilotClient, SubprocessConfig, define_tool
+from copilot.session import PermissionHandler
 
 MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
