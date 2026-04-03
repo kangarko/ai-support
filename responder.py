@@ -1394,29 +1394,14 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
     session = await client.create_session(
         on_permission_request=PermissionHandler.approve_all,
         model=model,
-        streaming=False,
+        streaming=True,
         system_message={"mode": "replace", "content": system_prompt},
         tools=tools,
         excluded_tools=EXCLUDED_BUILTIN_TOOLS,
     )
 
     try:
-        try:
-            await session.send_and_wait(user_prompt, timeout=float(timeout))
-        except (TimeoutError, asyncio.TimeoutError):
-            raise RuntimeError(f"Session timed out after {timeout}s")
-        except Exception as e:
-            raise RuntimeError(f"Session failed: {e}")
-
-        messages  = await session.get_messages()
-        msg_list  = list(messages)
-        print(f"  got {len(msg_list)} messages from session history")
-        candidate = extract_last_response(msg_list, min_length=min_length)
-
-        if not candidate:
-            raise RuntimeError(f"Empty output. messages={len(msg_list)}")
-
-        return candidate
+        return await send_prompt(session, user_prompt, timeout=timeout, min_length=min_length)
     finally:
         await session.disconnect()
 
