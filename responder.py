@@ -1421,8 +1421,9 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         await session.disconnect()
 
 
-async def send_prompt(session, prompt, timeout=3600, min_length=10):
+async def send_prompt(session, prompt, timeout=1800, min_length=10):
     event_count = [0]
+    timed_out = False
 
     def activity_monitor(event):
         event_count[0] += 1
@@ -1433,9 +1434,8 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
         try:
             await session.send_and_wait(prompt, timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
-            raise RuntimeError(
-                f"Session timed out after {timeout}s (events: {event_count[0]})"
-            )
+            print(f"  send_and_wait timed out after {timeout}s (events: {event_count[0]}) — extracting partial response")
+            timed_out = True
         except Exception as e:
             raise RuntimeError(
                 f"Session failed: {e} (events: {event_count[0]})"
@@ -1445,11 +1445,16 @@ async def send_prompt(session, prompt, timeout=3600, min_length=10):
 
     messages  = await session.get_messages()
     msg_list  = list(messages)
-    print(f"  send_prompt complete — {event_count[0]} events, {len(msg_list)} messages")
+    print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {len(msg_list)} messages")
     candidate = extract_last_response(msg_list, min_length=min_length)
 
     if not candidate:
+        if timed_out:
+            raise RuntimeError(f"Session timed out after {timeout}s with no usable response (events: {event_count[0]})")
         raise RuntimeError(f"Empty output. messages={len(msg_list)}")
+
+    if timed_out:
+        print(f"  Recovered partial response ({len(candidate)} chars) despite timeout")
 
     return candidate
 
