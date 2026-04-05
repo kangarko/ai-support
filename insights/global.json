@@ -1,26 +1,10 @@
 [
   {
-    "topic": "New features with destructive actions must never default to enabled",
-    "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
-  },
-  {
-    "topic": "PR diff must match claimed changes exactly",
-    "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
-  },
-  {
-    "topic": "Trace the exact code path before proposing a fix",
-    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
-  },
-  {
-    "topic": "Guard cache lookups in async event handlers",
-    "insight": "When a crash involves fromCached(), getCache(), PlayerCache.fromCached() or similar cache lookups, always check if the calling context is an async or race-prone event (PlayerDeathEvent, PlayerQuitEvent, AsyncPlayerChatEvent). These events can fire before the cache is populated or after it is cleared. The fix is always an isCached()/containsKey() guard before the lookup, never a try-catch. Learned from ChatControl #3538/#3543 where Spy.java called PlayerCache.fromCached() without checking isCached() during death events, causing NPE when the player's cache was not yet ready."
-  },
-  {
-    "topic": "Never put raw Bukkit objects into variable placeholder maps",
-    "insight": "Variable placeholder maps (passed to Variables.builder().placeholders()) must only contain String, Number, Boolean, UUID, Collection, Component, or SimpleComponent values. Putting raw Bukkit objects (Entity, Player, ItemStack, Block) causes crashes in Variables.replaceVariableLegacy() or replaceVariable(). When a field holds a raw object like Entity killer, always call the appropriate name/string method (e.g. getKillerName(), getName(), getType().name()) when inserting into the map. Learned from ChatControl #3536 where DeathMessage.prepareVariables put raw this.killer (Entity) instead of this.getKillerName() (String) into the 'killer' placeholder."
-  },
-  {
-    "topic": "Search codebase for feature existence before claiming it does not exist",
-    "insight": "Before telling a user that the plugin cannot do something or does not support a feature, search the codebase for related keywords (goal, pathfinder, target, attack, aggression, etc.). Never claim a capability is missing based on general Minecraft knowledge alone — the plugin may have added that exact capability via Paper API, NMS, or custom hooks. If the codebase contains the feature, explain how to enable it with the correct config key or menu path. Learned from Boss #1492 where the bot incorrectly said Boss cannot make passive mobs hostile, when in fact Boss has a full Paper Goal API integration (Native_Attack_Goal_Enabled) that injects targeting + melee attack goals onto any mob type."
+    "topic": "general",
+    "insight": "Lang keys starting with \"prefix-\" are removed from all caches when set to \"none\" in the lang file. Code must use Lang.exists() before Lang.plain()/Lang.component() for prefix keys, or use the safe Lang.prefixOrEmpty()/Lang.prefix() methods which return null/empty instead of throwing.",
+    "related_skill": "variables",
+    "scope": "global",
+    "date": "2026-04-05",
+    "issue": 3567
   }
 ]
