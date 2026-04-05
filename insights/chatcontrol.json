@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "database",
+    "insight": "The error `SQLException: Column 'Id' not found` in `ChatControl_Log` (with `InvocationTargetException` at `Table.createRowOrNull`) means the log table was created by an older version that lacked the `Id` column. `CREATE TABLE IF NOT EXISTS` doesn't modify existing tables, so the column stays missing after upgrade. Fix: `ALTER TABLE ChatControl_Log ADD COLUMN Id int NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (Id);`. A migration was added in PR #3579 to handle this automatically.",
+    "related_skill": "database",
+    "scope": "project",
+    "date": "2026-04-05",
+    "issue": 3578
   }
 ]
