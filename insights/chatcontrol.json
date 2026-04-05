@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-filter",
+    "insight": "Literal `\\n` typed by players gets converted to actual newlines by `SimpleComponent.fromMiniNative()` via `message.replace(\"\\\\n\", \"\\n\")`, which crashes 26.1+ clients when the newline appears in JSON chat fields (especially `Suggest_Command: '{message}'` in formats). Must strip `\\\\n` from player input at all entry points (ChatHandler, Channel, PrivateMessage, CommandMe, CommandSay, signs, anvils) before it reaches `fromMiniSection()`.",
+    "related_skill": "chat-filter",
+    "scope": "project",
+    "date": "2026-04-05",
+    "issue": 3572
   }
 ]
