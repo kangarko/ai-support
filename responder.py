@@ -33,6 +33,7 @@ MAX_FETCH_TIMEOUT     = 15
 MAX_ISSUE_RESULTS     = 10
 MAX_BATCH_PATCHES     = 20
 RESPONSE_FILE         = "response.md"
+PUBLIC_RESPONSE_TAG   = "public_response"
 CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
@@ -275,7 +276,7 @@ def build_system_prompt(cfg, skills):
         "### Structure",
         "- **Lead with the fix.** Solution first, context second. If someone can solve their problem by reading only your first sentence, you did it right.",
         "- **Show only what they need to change** — the relevant config key or code snippet, not the entire file.",
-        "- **No filler or meta-commentary.** Never start with 'Changes look good', 'Here's the summary', 'Let me explain', 'Sure!', or any preamble. Start with the substance.",
+        "- **No filler or meta-commentary.** Never start with 'Changes look good', 'Everything looks good', 'The fix is clean', 'The fix looks correct', 'The changes are complete', 'Here's the summary', 'Let me explain', 'Sure!', 'LGTM', or any preamble. Start with the substance. After making code changes via tool calls, your response is the USER-FACING reply only. Do not include any self-review of your own changes — no 'the fix is complete across both files', no 'I've verified the changes', no commentary about your own diff. Just give the user their answer.",
         "- **Never expose code internals.** Users are server owners, not developers. Don't mention class names, data structures, time complexity, reflection, HashSets, O(1), runtime behavior, how the code works under the hood, or which Java methods you changed. Even if someone asks 'how does X work?', explain only what they need to *do* (setup steps, config keys, what features it enables) — not the implementation.",
         "- **Never tell users to write code.** Don't suggest creating Java plugins, using APIs, registering classes, or calling methods. If a feature needs code changes, implement it yourself and propose a PR. If you can't implement it confidently, say it needs to be implemented by the development team — never ask the user to do it.",
         "- **Bold the key action:** e.g. **set `X: true` in settings.yml**",
@@ -1465,6 +1466,44 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10):
     return candidate
 
 
+def extract_tagged_block(text, tag):
+    pattern = re.compile(
+        rf"<{re.escape(tag)}>\s*(.*?)\s*</{re.escape(tag)}>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    matches = pattern.findall(text)
+
+    if not matches:
+        return ""
+
+    return matches[-1].strip()
+
+
+def finalize_public_response(text):
+    tagged = extract_tagged_block(text, PUBLIC_RESPONSE_TAG)
+
+    if tagged:
+        return tagged
+
+    cleaned = strip_review_preamble(text).strip()
+
+    if cleaned:
+        if cleaned != text.strip():
+            print("Warning: Missing structured public response tag — used review-preamble fallback")
+        else:
+            print("Warning: Missing structured public response tag — using raw assistant response")
+
+        return cleaned
+
+    print("Warning: Missing structured public response tag and fallback produced empty text — using raw assistant response")
+    return text.strip()
+
+
+async def send_public_response_prompt(session, prompt, timeout=1800):
+    response = await send_prompt(session, prompt, timeout=timeout)
+    return finalize_public_response(response)
+
+
 def audit_claims_vs_diff(response_text, diff_text):
     """Deterministic post-hoc audit: strip claims from response that aren't backed by the diff.
 
@@ -1583,6 +1622,22 @@ def get_git_diff():
         diff = diff[:MAX_DIFF_SIZE] + "\n... (diff truncated)"
 
     return diff
+
+
+REVIEW_PREAMBLE_PATTERN = re.compile(
+    r"^(?:Everything\s+looks\s+good|LGTM|Changes?\s+look\s+good|"
+    r"The\s+(?:fix|changes?)\s+(?:is|are|looks?)\s+(?:clean|correct|complete|solid|proper))(?:\b.*)?$",
+    re.IGNORECASE,
+)
+
+
+def strip_review_preamble(text):
+    lines = text.split("\n")
+
+    while lines and (not lines[0].strip() or REVIEW_PREAMBLE_PATTERN.match(lines[0].strip())):
+        lines.pop(0)
+
+    return "\n".join(lines).lstrip()
 
 
 TRIVIAL_REPLY_PATTERN = re.compile(
@@ -1922,6 +1977,11 @@ async def run():
 ## Available Skill Files
 {skill_list}
 
+## Output Contract
+Return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}>...</{PUBLIC_RESPONSE_TAG}>.
+Do not put anything before or after those tags.
+Inside the tags, include only the user-facing comment text that should be posted publicly.
+
 Read the most relevant skill files and source files, then respond to the latest comment. Write key findings to your working scratchpad as you go."""
         else:
             user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
@@ -1939,6 +1999,11 @@ Read the most relevant skill files and source files, then respond to the latest 
 
 ## Available Skill Files
 {skill_list}
+
+## Output Contract
+Return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}>...</{PUBLIC_RESPONSE_TAG}>.
+Do not put anything before or after those tags.
+Inside the tags, include only the user-facing comment text that should be posted publicly.
 
 Read the most relevant skill files and source files listed above. Write important findings to your working scratchpad as you go. Then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
 
@@ -1961,7 +2026,7 @@ Read the most relevant skill files and source files listed above. Write importan
 
         try:
             print("Phase 1 \u2014 generating response")
-            text = await send_prompt(session, user_prompt)
+            text = await send_public_response_prompt(session, user_prompt)
 
             print(f"Phase 1 \u2014 complete: {text[:200]}")
 
@@ -2010,6 +2075,8 @@ If you find problems, fix them with patch_codebase_file, batch_patch_codebase_fi
                         print(f"Warning: Phase 2 self-review failed \u2014 {e}")
 
                 text = audit_claims_vs_diff(text, diff_output)
+
+            text = strip_review_preamble(text)
 
             if not (is_reply and text.strip().upper().startswith("SKIP")):
                 print("Phase 3 \u2014 extracting insights")
