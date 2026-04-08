@@ -18,6 +18,13 @@ import yaml
 from pydantic import BaseModel, Field
 from copilot import CopilotClient, SubprocessConfig, define_tool
 from copilot.session import PermissionHandler
+from response_validation import (
+    PUBLIC_RESPONSE_TAG,
+    finalize_public_response_text,
+    has_complete_public_response,
+    is_skip_response,
+    validate_response_file_content,
+)
 
 MAIN_DIR       = "main"
 FOUNDATION_DIR = "foundation"
@@ -33,7 +40,6 @@ MAX_FETCH_TIMEOUT     = 15
 MAX_ISSUE_RESULTS     = 10
 MAX_BATCH_PATCHES     = 20
 RESPONSE_FILE         = "response.md"
-PUBLIC_RESPONSE_TAG   = "public_response"
 CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
@@ -667,6 +673,40 @@ def extract_last_response(messages, min_length=10):
         text = extract_text(read_field(msg, "content"))
 
         if text and len(text) > min_length:
+            return text
+
+    return ""
+
+
+def extract_last_public_response(messages):
+    msg_list = list(messages)
+
+    for msg in reversed(msg_list):
+        msg_type   = read_field(msg, "type")
+        type_value = str(read_field(msg_type, "value") or "") if msg_type is not None else ""
+
+        if type_value.lower() != "assistant.message":
+            continue
+
+        data = read_field(msg, "data")
+
+        if data is None:
+            continue
+
+        text = extract_text(read_field(data, "content"))
+
+        if text and (is_skip_response(text) or has_complete_public_response(text)):
+            return text
+
+    for msg in reversed(msg_list):
+        role = normalize_role(read_field(msg, "role"))
+
+        if role != "assistant":
+            continue
+
+        text = extract_text(read_field(msg, "content"))
+
+        if text and (is_skip_response(text) or has_complete_public_response(text)):
             return text
 
     return ""
@@ -1407,7 +1447,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         await session.disconnect()
 
 
-async def send_prompt(session, prompt, timeout=1800, min_length=10):
+async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=None):
     event_count = [0]
     tool_calls = [0]
     turns = [0]
@@ -1453,7 +1493,10 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10):
     messages  = await session.get_messages()
     msg_list  = list(messages)
     print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {tool_calls[0]} tool calls, {turns[0]} turns, {len(msg_list)} messages")
-    candidate = extract_last_response(msg_list, min_length=min_length)
+    if extractor is None:
+        candidate = extract_last_response(msg_list, min_length=min_length)
+    else:
+        candidate = extractor(msg_list)
 
     if not candidate:
         if timed_out:
@@ -1461,47 +1504,14 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10):
         raise RuntimeError(f"Empty output. messages={len(msg_list)}")
 
     if timed_out:
-        print(f"  Recovered partial response ({len(candidate)} chars) despite timeout")
+        print(f"  Recovered response ({len(candidate)} chars) despite timeout")
 
     return candidate
 
 
-def extract_tagged_block(text, tag):
-    pattern = re.compile(
-        rf"<{re.escape(tag)}>\s*(.*?)\s*</{re.escape(tag)}>",
-        re.IGNORECASE | re.DOTALL,
-    )
-    matches = pattern.findall(text)
-
-    if not matches:
-        return ""
-
-    return matches[-1].strip()
-
-
-def finalize_public_response(text):
-    tagged = extract_tagged_block(text, PUBLIC_RESPONSE_TAG)
-
-    if tagged:
-        return tagged
-
-    cleaned = strip_review_preamble(text).strip()
-
-    if cleaned:
-        if cleaned != text.strip():
-            print("Warning: Missing structured public response tag — used review-preamble fallback")
-        else:
-            print("Warning: Missing structured public response tag — using raw assistant response")
-
-        return cleaned
-
-    print("Warning: Missing structured public response tag and fallback produced empty text — using raw assistant response")
-    return text.strip()
-
-
 async def send_public_response_prompt(session, prompt, timeout=1800):
-    response = await send_prompt(session, prompt, timeout=timeout)
-    return finalize_public_response(response)
+    response = await send_prompt(session, prompt, timeout=timeout, min_length=1, extractor=extract_last_public_response)
+    return finalize_public_response_text(response)
 
 
 def audit_claims_vs_diff(response_text, diff_text):
@@ -1978,7 +1988,8 @@ async def run():
 {skill_list}
 
 ## Output Contract
-Return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}>...</{PUBLIC_RESPONSE_TAG}>.
+If no public reply is needed, return exactly SKIP.
+Otherwise return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}>...</{PUBLIC_RESPONSE_TAG}>.
 Do not put anything before or after those tags.
 Inside the tags, include only the user-facing comment text that should be posted publicly.
 
@@ -2078,7 +2089,7 @@ If you find problems, fix them with patch_codebase_file, batch_patch_codebase_fi
 
             text = strip_review_preamble(text)
 
-            if not (is_reply and text.strip().upper().startswith("SKIP")):
+            if not (is_reply and is_skip_response(text)):
                 print("Phase 3 \u2014 extracting insights")
 
                 insight_prompt = f"""Now analyze this resolved issue to extract reusable support insights, if any.
@@ -2169,9 +2180,10 @@ Issue #{issue_number}: {title}"""
 
             print("PR description(s) written")
 
-        if is_reply and text.strip().upper().startswith("SKIP"):
+        if is_reply and is_skip_response(text):
             print("Bot decided to skip \u2014 no response needed")
         else:
+            validate_response_file_content(text)
             Path(RESPONSE_FILE).write_text(text)
             print("Response written to response.md")
     finally:

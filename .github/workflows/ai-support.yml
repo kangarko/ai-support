@@ -258,6 +258,10 @@ jobs:
         run: |
           printf '\n:wrench: **Foundation draft fix:** %s' "${{ steps.foundation_fix_pr.outputs.pr_url }}" >> response.md
 
+      - name: Validate response before posting
+        if: "!cancelled() && hashFiles('response.md') != ''"
+        run: python ai-support/validate_response.py response.md
+
       - name: Post response comment
         if: "!cancelled() && hashFiles('response.md') != ''"
         env:
