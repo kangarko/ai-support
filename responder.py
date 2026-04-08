@@ -215,6 +215,8 @@ def build_system_prompt(cfg, skills):
         "- Leave NO TODOs, placeholders, or missing pieces — every patch must be complete and production-ready",
         "- Never use sample data, placeholders, or null-coalescing fallbacks as a lazy fix. Validate properly instead",
         "- Never fail silently. Always throw an error if something is missing or unexpected — never swallow exceptions or return null quietly",
+        "- Never add a defensive fix using a fallback. Never wrap code in try-catch as a fix — if code throws, fix the ROOT CAUSE (bad input, missing conversion, wrong API usage), don't catch and suppress the exception with a fallback path. The only acceptable try-catch is for external code you cannot modify AND cannot prevent from throwing",
+        "- Never hide errors. If a method receives unexpected input (e.g. legacy § color codes passed to a MiniMessage parser), fix the input BEFORE it reaches the method — don't catch the exception and fall back to regex or manual parsing. Sanitize inputs at the boundary where they enter the system",
         "- Before changing any shared method, class, or convention, use search_codebase to scan for ALL existing usages first. Understand the established pattern, then follow it consistently. Do not break callers",
         "- Include all required imports in every patch",
         "- If an error handler catches an unexpected response, log the raw response content to help debugging — not just 'an error occurred'",
