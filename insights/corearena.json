@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "arenas",
+    "insight": "Console commands using `@announce`, `@warn`, `@error`, `@info`, `@question`, or `@success` prefixes require a player context in Foundation's `dispatchConsoleCommand`. In `ArenaCommands.runConsole()` and `runAsConsole()`, always pass `Platform.toPlayer(player)` instead of `null` \u2014 otherwise these prefixes crash with \"Cannot use @X without a player\". The `Console_Commands_For_Each` setting controls iteration but doesn't affect whether a player context is passed.",
+    "related_skill": "arenas",
+    "scope": "project",
+    "date": "2026-04-10",
+    "issue": 605
+  }
+]
