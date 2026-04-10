@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "arenas",
+    "insight": "`@announce`/`@warn`/`@error`/`@info`/`@question`/`@success` prefixes in arena console commands (End_Commands, Finish_Commands, etc.) crash with \"Cannot use @announce without a player\" because `ArenaCommands.runConsole()` passed null instead of the player to `Platform.dispatchConsoleCommand()`. These `@` prefixes are inherently per-player and need a player context even when `Console_Commands_For_Each` is false.",
+    "related_skill": "arenas",
+    "scope": "project",
+    "date": "2026-04-10",
+    "issue": 607
+  }
+]
