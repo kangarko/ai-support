@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "arenas",
+    "insight": "Console commands in arena config (lobby start, player leave, etc.) that use `@announce`, `@warn`, `@error`, `@info`, `@question`, or `@success` prefixes require a non-null player because Foundation's `dispatchConsoleCommand` sends formatted messages TO a player. In `ArenaCommands.runConsole()` and `runAsConsole()`, the player must be passed via `Platform.toPlayer(player)` instead of `null`. Fixed in #609.",
+    "related_skill": "arenas",
+    "scope": "project",
+    "date": "2026-04-11",
+    "issue": 609
+  }
+]
