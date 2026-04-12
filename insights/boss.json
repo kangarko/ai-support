@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "CitizensHook.findRegistry() can throw NoClassDefFoundError (not just IllegalStateException) when Citizens is detected by HookManager.isCitizensLoaded() but its classes aren't actually available at runtime (e.g., removed after detection, or class loading issues on alpha Paper builds). Also, CitizensHook.update(Boss, Entity) previously didn't null-check findRegistry() unlike all other callers, which could cause NPE in the same scenario. Both were fixed in #1498.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-04-12",
+    "issue": 1498
   }
 ]
