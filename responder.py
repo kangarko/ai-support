@@ -2197,12 +2197,4 @@ if __name__ == "__main__":
         asyncio.run(run())
     except Exception as fatal:
         print(f"FATAL: {fatal}")
-
-        failure_body = (
-            "The AI analysis was unable to generate a response for this issue.\n\n"
-            f"**Error:** `{fatal}`\n\n"
-            "A human maintainer will follow up."
-        )
-
-        Path("failure.md").write_text(failure_body)
         raise
