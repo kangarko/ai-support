@@ -1926,7 +1926,7 @@ async def run():
         search_github_code, fetch_github_file, close_pull_request,
         store_insight, write_working_note, read_working_notes,
     ]
-    model = "claude-opus-4.6"
+    model = "claude-opus-4.7"
 
     client = CopilotClient(SubprocessConfig(
         github_token=token,
