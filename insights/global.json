@@ -22,5 +22,17 @@
   {
     "topic": "Search codebase for feature existence before claiming it does not exist",
     "insight": "Before telling a user that the plugin cannot do something or does not support a feature, search the codebase for related keywords (goal, pathfinder, target, attack, aggression, etc.). Never claim a capability is missing based on general Minecraft knowledge alone — the plugin may have added that exact capability via Paper API, NMS, or custom hooks. If the codebase contains the feature, explain how to enable it with the correct config key or menu path. Learned from Boss #1492 where the bot incorrectly said Boss cannot make passive mobs hostile, when in fact Boss has a full Paper Goal API integration (Native_Attack_Goal_Enabled) that injects targeting + melee attack goals onto any mob type."
+  },
+  {
+    "topic": "Prefer warning-and-auto-correct over hard crash on invalid config values",
+    "insight": "When a user sets a config value that is syntactically valid YAML/JSON but semantically meaningless (e.g. a placeholder sentinel, a legacy value no longer supported, a value belonging in a different config key), do NOT throw FoException or ValidCore.checkBoolean. That crashes the plugin on reload and blocks the entire server. Instead, print CommonCore.warning(...) explaining what was wrong and how to fix it, strip/replace the offending value in-place, and continue loading. Reserve hard crashes for truly unrecoverable conditions (missing required file, wrong Minecraft version, corrupted data). Learned from ChatControl #3613 where 'global' in Rules.Apply_On triggered a ValidCore.checkBoolean crash that prevented every reload until manually fixed."
+  },
+  {
+    "topic": "Never claim a code change is present unless it appears verbatim in the diff",
+    "insight": "When describing what a proposed PR does, every bullet point MUST correspond to specific lines in the diff. Do not aspirationally list fixes you intended to make but forgot to implement. Before posting the comment, re-read the full diff line-by-line and only keep bullet points whose logic is actually present. If a bullet point claims 'Added X', grep the diff for X and confirm it exists. Learned from Foundation PR #441 where the bot claimed 'Added back-off on failure' and 'Preserves cached data on failure' in the issue comment, but the diff only contained the back-off counter field without the increment logic or cache preservation — the auto-validator even flagged this but the bot posted the comment anyway."
+  },
+  {
+    "topic": "Periodic polling tasks must have conservative default intervals",
+    "insight": "Any task scheduled via runTaskTimerAsync or runTaskTimer that hits an external resource (database, API, network) must default to an interval of 30 seconds or more, never 1-5 seconds. Sub-second polling across multiple plugins compounds linearly and exhausts connection pools / rate limits even on healthy systems. If freshness genuinely matters, use event-driven updates (listen to the mute/ban event) instead of polling. On failure, add a back-off counter that skips N runs before retrying, and never clear cached data on failure — keep the stale cache so the plugin keeps working during outages. Learned from Foundation #442 where LitebansTask ran every 2 seconds per plugin, causing 'Connection pool exhaustion detected (open=100, max=100)' with Boss+Protect+StaffSuite+NotBounties all polling LiteBans simultaneously."
   }
 ]
