@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "A `Cannot instantiate SerializedMap from (ArrayList) '[{Part=...}, {Part=...}]'` crash on Format load means the user wrote `Parts:` as an inline flow list instead of block-style YAML, usually triggered by embedding multiline single-quoted `<hover>`/`<click>` MiniMessage in a `Part:` value. Fix: rewrite Parts as block `- Part:` / `- Message:` entries and move hover/click tags into the dedicated `Hover_Text:` and `Suggest_Command:` keys on the part.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-04-27",
+    "issue": 3626
   }
 ]
