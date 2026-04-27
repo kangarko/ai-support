@@ -44,6 +44,11 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
+MODEL                 = "claude-opus-4.7"
+REASONING_EFFORT      = "max"
+REASONING_EFFORTS     = ("low", "medium", "high", "xhigh")
+AUTO_REPORTED_CRASH   = "Auto-reported crash"
+REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root."
 
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
@@ -712,6 +717,91 @@ def extract_last_public_response(messages):
             return text
 
     return ""
+
+
+def with_required_prompt_text(prompt):
+    text = prompt.rstrip()
+
+    if REQUIRED_PROMPT_TEXT in text:
+        return text
+
+    return f"{text}\n\n{REQUIRED_PROMPT_TEXT}"
+
+
+def build_system_message(content):
+    return {"mode": "replace", "content": with_required_prompt_text(content)}
+
+
+def is_auto_reported_crash(body):
+    return AUTO_REPORTED_CRASH in body
+
+
+def get_reasoning_effort_rank(effort):
+    if effort not in REASONING_EFFORTS:
+        supported_text = ", ".join(REASONING_EFFORTS)
+        raise RuntimeError(f"Unexpected reasoning effort '{effort}'. Known efforts: {supported_text}")
+
+    return REASONING_EFFORTS.index(effort)
+
+
+def resolve_reasoning_effort(model_info, effort):
+    if not model_info.capabilities.supports.reasoning_effort:
+        raise RuntimeError(f"Model '{model_info.id}' does not support reasoning effort.")
+
+    supported_efforts = model_info.supported_reasoning_efforts
+
+    if supported_efforts is None:
+        raise RuntimeError(f"Model '{model_info.id}' did not report supported reasoning efforts, cannot choose maximum safely.")
+
+    if not supported_efforts:
+        raise RuntimeError(f"Model '{model_info.id}' reported no supported reasoning efforts.")
+
+    for supported_effort in supported_efforts:
+        get_reasoning_effort_rank(supported_effort)
+
+    if effort == "max":
+        return sorted(supported_efforts, key=get_reasoning_effort_rank)[-1]
+
+    if effort in supported_efforts:
+        return effort
+
+    supported_text = ", ".join(supported_efforts)
+    raise RuntimeError(f"Configured reasoning effort '{effort}' is not supported by model '{model_info.id}'. Supported efforts: {supported_text}")
+
+
+def format_supported_reasoning_efforts(model_info):
+    supported_efforts = model_info.supported_reasoning_efforts
+
+    if supported_efforts is None:
+        return "not reported"
+
+    if not supported_efforts:
+        return "none"
+
+    return ", ".join(supported_efforts)
+
+
+async def configure_reasoning_effort(client, session_kwargs, model, effort):
+    models = await client.list_models()
+
+    if not models:
+        raise RuntimeError("models.list returned no available models.")
+
+    selected_model = None
+
+    for model_info in models:
+        if model_info.id == model:
+            selected_model = model_info
+            break
+
+    if selected_model is None:
+        available_models = ", ".join(model_info.id for model_info in models)
+        raise RuntimeError(f"Configured model '{model}' was not returned by models.list. Available models: {available_models}")
+
+    selected_effort = resolve_reasoning_effort(selected_model, effort)
+    session_kwargs["reasoning_effort"] = selected_effort
+    supported_text = format_supported_reasoning_efforts(selected_model)
+    print(f"Model '{model}' adaptive reasoning effort '{selected_effort}' selected from supported efforts: {supported_text}")
 
 
 def validate_path(path_str):
@@ -1434,14 +1524,18 @@ def read_working_notes(params: ReadNotesParams) -> str:
 
 
 async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10):
-    session = await client.create_session(
-        on_permission_request=PermissionHandler.approve_all,
-        model=model,
-        streaming=True,
-        system_message={"mode": "replace", "content": system_prompt},
-        tools=tools,
-        excluded_tools=EXCLUDED_BUILTIN_TOOLS,
-    )
+    session_kwargs = {
+        "on_permission_request": PermissionHandler.approve_all,
+        "model": model,
+        "streaming": True,
+        "system_message": build_system_message(system_prompt),
+        "tools": tools,
+        "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+    }
+
+    await configure_reasoning_effort(client, session_kwargs, model, REASONING_EFFORT)
+
+    session = await client.create_session(**session_kwargs)
 
     try:
         return await send_prompt(session, user_prompt, timeout=timeout, min_length=min_length)
@@ -1481,7 +1575,7 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
 
     try:
         try:
-            await session.send_and_wait(prompt, timeout=float(timeout))
+            await session.send_and_wait(with_required_prompt_text(prompt), timeout=float(timeout))
         except (TimeoutError, asyncio.TimeoutError):
             print(f"  send_and_wait timed out after {timeout}s (events: {event_count[0]}, tools: {tool_calls[0]}, turns: {turns[0]}, last_tool: {last_tool[0]}) — extracting partial response")
             timed_out = True
@@ -1844,6 +1938,10 @@ async def run():
     is_reply       = bool(comment_body)
     token          = os.environ.get("COPILOT_GITHUB_TOKEN")
 
+    if is_auto_reported_crash(body):
+        print("Pre-filter: auto-reported crash detected, skipping")
+        return
+
     if not token:
         raise RuntimeError("Missing required environment variable: COPILOT_GITHUB_TOKEN")
 
@@ -1926,7 +2024,7 @@ async def run():
         search_github_code, fetch_github_file, close_pull_request,
         store_insight, write_working_note, read_working_notes,
     ]
-    model = "claude-opus-4.7"
+    model = MODEL
 
     client = CopilotClient(SubprocessConfig(
         github_token=token,
@@ -2024,8 +2122,7 @@ Read the most relevant skill files and source files listed above. Write importan
             "on_permission_request": PermissionHandler.approve_all,
             "model": model,
             "streaming": True,
-            "reasoning_effort": "high",
-            "system_message": {"mode": "replace", "content": system_prompt},
+            "system_message": build_system_message(system_prompt),
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
             "infinite_sessions": {
@@ -2034,6 +2131,8 @@ Read the most relevant skill files and source files listed above. Write importan
                 "buffer_exhaustion_threshold": 0.95,
             },
         }
+
+        await configure_reasoning_effort(client, session_kwargs, model, REASONING_EFFORT)
 
         session = await client.create_session(**session_kwargs)
 
