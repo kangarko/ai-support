@@ -44,6 +44,7 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
+REASONING_EFFORT      = "high"
 
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
@@ -712,6 +713,55 @@ def extract_last_public_response(messages):
             return text
 
     return ""
+
+
+def model_allows_reasoning_effort(model_info, effort):
+    if not model_info.capabilities.supports.reasoning_effort:
+        return False
+
+    supported_efforts = model_info.supported_reasoning_efforts
+
+    if supported_efforts is None:
+        return True
+
+    if effort in supported_efforts:
+        return True
+
+    return False
+
+
+def format_supported_reasoning_efforts(model_info):
+    supported_efforts = model_info.supported_reasoning_efforts
+
+    if supported_efforts:
+        return ", ".join(supported_efforts)
+
+    return "none"
+
+
+async def configure_reasoning_effort(client, session_kwargs, model, effort):
+    models = await client.list_models()
+
+    if not models:
+        raise RuntimeError("models.list returned no available models.")
+
+    selected_model = None
+
+    for model_info in models:
+        if model_info.id == model:
+            selected_model = model_info
+            break
+
+    if selected_model is None:
+        available_models = ", ".join(model_info.id for model_info in models)
+        raise RuntimeError(f"Configured model '{model}' was not returned by models.list. Available models: {available_models}")
+
+    if model_allows_reasoning_effort(selected_model, effort):
+        session_kwargs["reasoning_effort"] = effort
+        print(f"Model '{model}' supports reasoning effort '{effort}', enabling it")
+    else:
+        supported_text = format_supported_reasoning_efforts(selected_model)
+        print(f"Model '{model}' does not support reasoning effort '{effort}' (supported: {supported_text}), creating session without it")
 
 
 def validate_path(path_str):
@@ -2024,7 +2074,6 @@ Read the most relevant skill files and source files listed above. Write importan
             "on_permission_request": PermissionHandler.approve_all,
             "model": model,
             "streaming": True,
-            "reasoning_effort": "high",
             "system_message": {"mode": "replace", "content": system_prompt},
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
@@ -2034,6 +2083,8 @@ Read the most relevant skill files and source files listed above. Write importan
                 "buffer_exhaustion_threshold": 0.95,
             },
         }
+
+        await configure_reasoning_effort(client, session_kwargs, model, REASONING_EFFORT)
 
         session = await client.create_session(**session_kwargs)
 
