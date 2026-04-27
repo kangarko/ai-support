@@ -45,8 +45,7 @@ MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
 MODEL                 = "claude-opus-4.7"
-REASONING_EFFORT      = "max"
-REASONING_EFFORTS     = ("low", "medium", "high", "xhigh")
+REASONING_EFFORT      = "xhigh"
 AUTO_REPORTED_CRASH   = "Auto-reported crash"
 REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root."
 
@@ -734,74 +733,6 @@ def build_system_message(content):
 
 def is_auto_reported_crash(body):
     return AUTO_REPORTED_CRASH in body
-
-
-def get_reasoning_effort_rank(effort):
-    if effort not in REASONING_EFFORTS:
-        supported_text = ", ".join(REASONING_EFFORTS)
-        raise RuntimeError(f"Unexpected reasoning effort '{effort}'. Known efforts: {supported_text}")
-
-    return REASONING_EFFORTS.index(effort)
-
-
-def resolve_reasoning_effort(model_info, effort):
-    if not model_info.capabilities.supports.reasoning_effort:
-        raise RuntimeError(f"Model '{model_info.id}' does not support reasoning effort.")
-
-    supported_efforts = model_info.supported_reasoning_efforts
-
-    if supported_efforts is None:
-        raise RuntimeError(f"Model '{model_info.id}' did not report supported reasoning efforts, cannot choose maximum safely.")
-
-    if not supported_efforts:
-        raise RuntimeError(f"Model '{model_info.id}' reported no supported reasoning efforts.")
-
-    for supported_effort in supported_efforts:
-        get_reasoning_effort_rank(supported_effort)
-
-    if effort == "max":
-        return sorted(supported_efforts, key=get_reasoning_effort_rank)[-1]
-
-    if effort in supported_efforts:
-        return effort
-
-    supported_text = ", ".join(supported_efforts)
-    raise RuntimeError(f"Configured reasoning effort '{effort}' is not supported by model '{model_info.id}'. Supported efforts: {supported_text}")
-
-
-def format_supported_reasoning_efforts(model_info):
-    supported_efforts = model_info.supported_reasoning_efforts
-
-    if supported_efforts is None:
-        return "not reported"
-
-    if not supported_efforts:
-        return "none"
-
-    return ", ".join(supported_efforts)
-
-
-async def configure_reasoning_effort(client, session_kwargs, model, effort):
-    models = await client.list_models()
-
-    if not models:
-        raise RuntimeError("models.list returned no available models.")
-
-    selected_model = None
-
-    for model_info in models:
-        if model_info.id == model:
-            selected_model = model_info
-            break
-
-    if selected_model is None:
-        available_models = ", ".join(model_info.id for model_info in models)
-        raise RuntimeError(f"Configured model '{model}' was not returned by models.list. Available models: {available_models}")
-
-    selected_effort = resolve_reasoning_effort(selected_model, effort)
-    session_kwargs["reasoning_effort"] = selected_effort
-    supported_text = format_supported_reasoning_efforts(selected_model)
-    print(f"Model '{model}' adaptive reasoning effort '{selected_effort}' selected from supported efforts: {supported_text}")
 
 
 def validate_path(path_str):
@@ -1528,12 +1459,11 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         "on_permission_request": PermissionHandler.approve_all,
         "model": model,
         "streaming": True,
+        "reasoning_effort": REASONING_EFFORT,
         "system_message": build_system_message(system_prompt),
         "tools": tools,
         "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
     }
-
-    await configure_reasoning_effort(client, session_kwargs, model, REASONING_EFFORT)
 
     session = await client.create_session(**session_kwargs)
 
@@ -2122,6 +2052,7 @@ Read the most relevant skill files and source files listed above. Write importan
             "on_permission_request": PermissionHandler.approve_all,
             "model": model,
             "streaming": True,
+            "reasoning_effort": REASONING_EFFORT,
             "system_message": build_system_message(system_prompt),
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
@@ -2131,8 +2062,6 @@ Read the most relevant skill files and source files listed above. Write importan
                 "buffer_exhaustion_threshold": 0.95,
             },
         }
-
-        await configure_reasoning_effort(client, session_kwargs, model, REASONING_EFFORT)
 
         session = await client.create_session(**session_kwargs)
 
