@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "spawning",
+    "insight": "On LOCATION_PERIOD spawn rules, `Delay` is counted from the last successful spawn (Last_Executed), not from boss death \u2014 so if the boss survives longer than Delay, the cooldown has already expired by the time it dies and it respawns on the next tick. RESPAWN_AFTER_DEATH handles death-cooldown correctly via its own canRun(boss, data) override using getLastDeathTime().",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-01",
+    "issue": 1506
   }
 ]
