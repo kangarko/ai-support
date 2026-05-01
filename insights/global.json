@@ -1,42 +1,10 @@
 [
   {
-    "topic": "New features with destructive actions must never default to enabled",
-    "insight": "Any new feature that can destroy, remove, or alter user data (items, messages, configurations) must ALWAYS ship disabled by default. Users must explicitly opt in. This applies to: scan rules with confiscate/strip actions (Protect), filters that delete messages (ChatControl), any auto-cleanup or auto-removal feature. Learned from Protect 2.7.1 where 3 new scan rules shipped enabled and caused item loss on thousands of servers."
-  },
-  {
-    "topic": "PR diff must match claimed changes exactly",
-    "insight": "When proposing a PR, every feature claimed in the issue comment MUST exist in the actual diff. Never describe operators, methods, or behaviors that are not present in the code changes. Before commenting on what a PR adds, re-read the full diff and verify each claimed feature has corresponding code. If implementing a subset, explicitly state which items are included and which are deferred. Learned from Protect #83/#84 where the bot claimed to add 10+ operators but the PR only contained 2."
-  },
-  {
-    "topic": "Trace the exact code path before proposing a fix",
-    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
-  },
-  {
-    "topic": "Guard cache lookups in async event handlers",
-    "insight": "When a crash involves fromCached(), getCache(), PlayerCache.fromCached() or similar cache lookups, always check if the calling context is an async or race-prone event (PlayerDeathEvent, PlayerQuitEvent, AsyncPlayerChatEvent). These events can fire before the cache is populated or after it is cleared. The fix is always an isCached()/containsKey() guard before the lookup, never a try-catch. Learned from ChatControl #3538/#3543 where Spy.java called PlayerCache.fromCached() without checking isCached() during death events, causing NPE when the player's cache was not yet ready."
-  },
-  {
-    "topic": "Never put raw Bukkit objects into variable placeholder maps",
-    "insight": "Variable placeholder maps (passed to Variables.builder().placeholders()) must only contain String, Number, Boolean, UUID, Collection, Component, or SimpleComponent values. Putting raw Bukkit objects (Entity, Player, ItemStack, Block) causes crashes in Variables.replaceVariableLegacy() or replaceVariable(). When a field holds a raw object like Entity killer, always call the appropriate name/string method (e.g. getKillerName(), getName(), getType().name()) when inserting into the map. Learned from ChatControl #3536 where DeathMessage.prepareVariables put raw this.killer (Entity) instead of this.getKillerName() (String) into the 'killer' placeholder."
-  },
-  {
-    "topic": "Search codebase for feature existence before claiming it does not exist",
-    "insight": "Before telling a user that the plugin cannot do something or does not support a feature, search the codebase for related keywords (goal, pathfinder, target, attack, aggression, etc.). Never claim a capability is missing based on general Minecraft knowledge alone — the plugin may have added that exact capability via Paper API, NMS, or custom hooks. If the codebase contains the feature, explain how to enable it with the correct config key or menu path. Learned from Boss #1492 where the bot incorrectly said Boss cannot make passive mobs hostile, when in fact Boss has a full Paper Goal API integration (Native_Attack_Goal_Enabled) that injects targeting + melee attack goals onto any mob type."
-  },
-  {
-    "topic": "Prefer warning-and-auto-correct over hard crash on invalid config values",
-    "insight": "When a user sets a config value that is syntactically valid YAML/JSON but semantically meaningless (e.g. a placeholder sentinel, a legacy value no longer supported, a value belonging in a different config key), do NOT throw FoException or ValidCore.checkBoolean. That crashes the plugin on reload and blocks the entire server. Instead, print CommonCore.warning(...) explaining what was wrong and how to fix it, strip/replace the offending value in-place, and continue loading. Reserve hard crashes for truly unrecoverable conditions (missing required file, wrong Minecraft version, corrupted data). Learned from ChatControl #3613 where 'global' in Rules.Apply_On triggered a ValidCore.checkBoolean crash that prevented every reload until manually fixed."
-  },
-  {
-    "topic": "Never claim a code change is present unless it appears verbatim in the diff",
-    "insight": "When describing what a proposed PR does, every bullet point MUST correspond to specific lines in the diff. Do not aspirationally list fixes you intended to make but forgot to implement. Before posting the comment, re-read the full diff line-by-line and only keep bullet points whose logic is actually present. If a bullet point claims 'Added X', grep the diff for X and confirm it exists. Learned from Foundation PR #441 where the bot claimed 'Added back-off on failure' and 'Preserves cached data on failure' in the issue comment, but the diff only contained the back-off counter field without the increment logic or cache preservation — the auto-validator even flagged this but the bot posted the comment anyway."
-  },
-  {
-    "topic": "Check for an official event API before proposing any polling task",
-    "insight": "When integrating with a third-party plugin whose state the MA plugin needs to track (mutes, bans, punishments, economy, permissions), ALWAYS read the upstream plugin's public javadoc first to check for a listener/event API. Never default to a scheduled runTaskTimerAsync that queries the plugin's database on an interval — that pattern scales linearly with the number of MA plugins installed and exhausts the upstream plugin's connection pool. LiteBans exposes litebans.api.Events with entryAdded/entryRemoved, Vault has its own listeners, LuckPerms has EventBus, etc. If and ONLY if no event API exists, polling is acceptable with a minimum 30-second interval, a back-off counter on failure, and preservation of cached data during outages. Learned from Foundation #442 where LitebansTask ran every 2 seconds per plugin — raising the interval to 30s (PR #441) merely masked the problem and introduced mute-desync; the proper fix was rewriting the integration to use litebans.api.Events.get().register(), eliminating polling entirely."
-  },
-  {
-    "topic": "Catch Throwable, not specific Exception subclass, around external (un)serializers",
-    "insight": "When wrapping calls to Bukkit/Paper/NMS deserialization APIs (e.g. Bukkit.getUnsafe().deserializeItemFromJson, ItemStack.deserialize, ConfigurationSerializable round-trips), catch `Throwable` rather than `IllegalArgumentException` or `Exception`. These APIs internally route through Mojang's codec/DataFixerUpper, which can throw NullPointerException, ClassCastException, JsonParseException, or even Errors for malformed/hacked input — none of which are subclasses of IllegalArgumentException. After catching, log a warning and return null (or skip the row) so one corrupt entry never blocks loading the rest. Always re-throw NoSuchMethodError separately because that means the server is too old for the modern API. Also, when the same parser has a legacy fallback path (e.g. handling pre-modern format with a different key), make that fallback tolerant too — return null on missing required fields instead of ValidCore.checkBoolean. Learned from Protect #105 where hacked NBT (Infinityd, recursive translates) made deserializeItemFromJson throw NPE that escaped the catch and fell into a legacy `Missing 'type'` FoException, crashing every restart for affected servers."
+    "topic": "bosses",
+    "insight": "In Minecraft 1.20.5+, the vanilla `generic.scale` attribute multiplies an entity's max health on top of the base value. So setting `SCALE: 2.2` on a boss with `Health: 6000` produces ~13200 HP at runtime, causing a mismatch between `/boss menu` (shows base) and the in-game bossbar (shows actual). Fix: set SCALE to 1.0 or compensate by lowering Health.",
+    "related_skill": "",
+    "scope": "global",
+    "date": "2026-05-01",
+    "issue": 1508
   }
 ]
