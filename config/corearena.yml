@@ -1,6 +1,6 @@
 name: CoreArena
 description: "a MobArena-style PvE minigame plugin for Spigot/Paper with arenas, phases, waves, classes, tiers, upgrades, experience, and rewards"
-repo: kangarko/CoreArena
+repo: kangarko/CoreArena-Src
 
 layout:
   type: single-module

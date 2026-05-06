@@ -1,6 +1,6 @@
 name: Boss
 description: "a Minecraft custom boss mob creation and management plugin for Spigot/Paper"
-repo: kangarko/Boss
+repo: kangarko/Boss-Src
 
 layout:
   type: single-module

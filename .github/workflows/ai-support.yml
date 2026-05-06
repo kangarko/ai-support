@@ -6,6 +6,11 @@ on:
       project_id:
         required: true
         type: string
+      source_repo:
+        required: false
+        type: string
+        default: ""
+        description: "owner/repo of the private source repository to checkout. Defaults to the calling repository."
       event_name:
         required: true
         type: string
@@ -86,11 +91,12 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          repositories: ChatControl,Boss,CoreArena,Protect,Winter-Src,ai-support,foundation
+          repositories: Boss,Boss-Src,ChatControl,ChatControl-Src,CoreArena,CoreArena-Src,Protect,Protect-Src,Winter,Winter-Src,ai-support,foundation
 
       - name: Checkout project
         uses: actions/checkout@v6
         with:
+          repository: ${{ inputs.source_repo != '' && inputs.source_repo || github.repository }}
           token: ${{ steps.app_token.outputs.token }}
           path: main
 
@@ -183,6 +189,8 @@ jobs:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
           ISSUE_NUM: ${{ inputs.issue_number }}
           ISSUE_TITLE: ${{ inputs.issue_title }}
+          SOURCE_REPO: ${{ inputs.source_repo != '' && inputs.source_repo || github.repository }}
+          PUBLIC_REPO: ${{ github.repository }}
         run: |
           cd main
           git checkout -- .github/ 2>/dev/null || true
@@ -197,18 +205,18 @@ jobs:
           git config user.name "kangobot[bot]"
           git config user.email "2869176+kangobot[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git commit -m "Proposed fix for #${ISSUE_NUM}"
+          git commit -m "Proposed fix for ${PUBLIC_REPO}#${ISSUE_NUM}"
           git push -f origin "$BRANCH"
 
-          EXISTING_PR=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null || true)
+          EXISTING_PR=$(gh pr list --repo "$SOURCE_REPO" --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null || true)
 
           if [ -n "$EXISTING_PR" ]; then
             echo "pr_url=$EXISTING_PR" >> "$GITHUB_OUTPUT"
           else
             PR_URL=$(gh pr create \
-              --repo "${{ github.repository }}" \
+              --repo "$SOURCE_REPO" \
               --draft \
-              --title "Fix #${ISSUE_NUM}: ${ISSUE_TITLE}" \
+              --title "Fix ${PUBLIC_REPO}#${ISSUE_NUM}: ${ISSUE_TITLE}" \
               --body-file ../pr_description.md \
               --head "$BRANCH")
             echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"

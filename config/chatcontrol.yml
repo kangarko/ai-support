@@ -1,6 +1,6 @@
 name: ChatControl
 description: "a Minecraft chat plugin for Spigot/Paper/BungeeCord/Velocity providing chat management, formatting, filtering, and moderation"
-repo: kangarko/ChatControl
+repo: kangarko/ChatControl-Src
 
 layout:
   type: multi-module

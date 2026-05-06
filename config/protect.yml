@@ -1,6 +1,6 @@
 name: Protect
 description: "an anti-cheat and anti-dupe Minecraft plugin for Spigot/Paper that scans inventories for illegal items, logs commands and shop transactions, and limits WorldEdit usage"
-repo: kangarko/Protect
+repo: kangarko/Protect-Src
 
 layout:
   type: single-module
