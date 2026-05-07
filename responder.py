@@ -1497,7 +1497,7 @@ def read_working_notes(params: ReadNotesParams) -> str:
     return path.read_text()
 
 
-async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10):
+async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10, min_tool_calls=0):
     session_kwargs = {
         "on_permission_request": PermissionHandler.approve_all,
         "model": model,
@@ -1511,12 +1511,12 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
     session = await client.create_session(**session_kwargs)
 
     try:
-        return await send_prompt(session, user_prompt, timeout=timeout, min_length=min_length)
+        return await send_prompt(session, user_prompt, timeout=timeout, min_length=min_length, min_tool_calls=min_tool_calls)
     finally:
         await session.disconnect()
 
 
-async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=None):
+async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=None, min_tool_calls=0):
     event_count = [0]
     tool_calls = [0]
     turns = [0]
@@ -1562,6 +1562,10 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
     messages  = await session.get_messages()
     msg_list  = list(messages)
     print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {tool_calls[0]} tool calls, {turns[0]} turns, {len(msg_list)} messages")
+
+    if tool_calls[0] < min_tool_calls:
+        raise RuntimeError(f"Insufficient tool usage: expected at least {min_tool_calls}, got {tool_calls[0]}")
+
     if extractor is None:
         candidate = extract_last_response(msg_list, min_length=min_length)
     else:
@@ -1837,6 +1841,55 @@ Respond with only YES or NO."""
         return True
 
 
+async def run_codebase_study(client, model, system_prompt, case_context, key_files_text, hints_text, insights_text, research_section, skill_list):
+    study_tools = [
+        read_codebase_file, search_codebase, list_directory,
+        fetch_url, search_github_issues, get_github_issue,
+        search_github_code, fetch_github_file, read_working_notes,
+    ]
+
+    prompt = f"""Study the codebase for this GitHub issue before any public answer is generated.
+
+Your job in this phase is ONLY research. Do not draft the public reply. Do not propose code changes. Do not use write tools.
+
+<untrusted_user_input>
+{case_context}
+</untrusted_user_input>
+
+## Possibly Relevant Files
+{key_files_text}
+{hints_text}
+{insights_text}{research_section}
+
+## Available Skill Files
+{skill_list}
+
+## Mandatory checks
+- Read the 1 to 3 most relevant skill files in full.
+- Search the codebase for the user's exact terms and for likely plugin primitives.
+- Read the source or resource files behind every feature, command, config key, permission, flag, or rule you plan to mention.
+- If the issue concerns commands, list or read the relevant command package.
+- If the issue concerns default behavior, read the relevant files from the Shipped Defaults Index.
+- If you cite `.rs`, `.yml`, `.yaml`, or any line based config, classify each cited line as ACTIVE or INACTIVE. A line is INACTIVE when its first non whitespace character is `#`.
+- Check assumptions against source. If a skill or vocabulary block conflicts with source files, trust source files and state the conflict.
+- Do not name third party flags, permissions, commands, or config keys unless you found the exact string in source or official docs during this phase.
+
+Return a compact report with exactly these sections:
+1. Skill files read
+2. Searches and directories checked
+3. Source files read
+4. Verified facts
+5. Inactive or commented out findings
+6. Unsafe claims to avoid
+7. Recommended answer facts
+"""
+
+    return await run_agent_session(
+        client, model, system_prompt, prompt,
+        study_tools, timeout=900, min_length=200, min_tool_calls=4,
+    )
+
+
 async def run_research_subagent(client, model, class_not_found, known_deps):
     if not class_not_found:
         return ""
@@ -2043,19 +2096,28 @@ async def run():
 
             thread = format_conversation(body, conversation)
 
+            case_context = f"""**Issue Title:** {title}{label_line}
+
+## Conversation Thread
+{thread}"""
+
+            print("Phase 1 \u2014 studying codebase")
+            codebase_study = await run_codebase_study(client, model, system_prompt, case_context, key_files_text, hints_text, insights_text, research_section, skill_list)
+            print(f"Phase 1 \u2014 complete: {codebase_study[:200]}")
+
             user_prompt = f"""A user posted a follow-up comment on this issue. Respond to their latest comment.
 
 <untrusted_user_input>
-**Issue Title:** {title}{label_line}
-
-## Conversation Thread
-{thread}
+{case_context}
 </untrusted_user_input>
 
 ## Possibly Relevant Files
 {key_files_text}
 {hints_text}
 {insights_text}{research_section}
+
+## Mandatory Codebase Study
+{codebase_study}
 
 ## Available Skill Files
 {skill_list}
@@ -2066,20 +2128,29 @@ Otherwise return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}
 Do not put anything before or after those tags.
 Inside the tags, include only the user-facing comment text that should be posted publicly.
 
-Read the most relevant skill files and source files, then respond to the latest comment. Write key findings to your working scratchpad as you go."""
+Use the Mandatory Codebase Study as verified context. If you need more detail, read source files again before answering. Then respond to the latest comment."""
         else:
+            case_context = f"""**Title:** {title}{label_line}
+
+{body}"""
+
+            print("Phase 1 \u2014 studying codebase")
+            codebase_study = await run_codebase_study(client, model, system_prompt, case_context, key_files_text, hints_text, insights_text, research_section, skill_list)
+            print(f"Phase 1 \u2014 complete: {codebase_study[:200]}")
+
             user_prompt = f"""Help with this GitHub issue. Keep your response short and actionable.
 
 <untrusted_user_input>
-**Title:** {title}{label_line}
-
-{body}
+{case_context}
 </untrusted_user_input>
 
 ## Possibly Relevant Files
 {key_files_text}
 {hints_text}
 {insights_text}{research_section}
+
+## Mandatory Codebase Study
+{codebase_study}
 
 ## Available Skill Files
 {skill_list}
@@ -2089,7 +2160,7 @@ Return the exact public GitHub reply wrapped in <{PUBLIC_RESPONSE_TAG}>...</{PUB
 Do not put anything before or after those tags.
 Inside the tags, include only the user-facing comment text that should be posted publicly.
 
-Read the most relevant skill files and source files listed above. Write important findings to your working scratchpad as you go. Then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
+Use the Mandatory Codebase Study as verified context. If you need more detail, read source files again before answering. Then give a short, direct answer. Lead with the fix. Skip unnecessary explanation."""
 
         session_kwargs = {
             "on_permission_request": PermissionHandler.approve_all,
@@ -2109,13 +2180,13 @@ Read the most relevant skill files and source files listed above. Write importan
         session = await client.create_session(**session_kwargs)
 
         try:
-            print("Phase 1 \u2014 generating response")
+            print("Phase 2 \u2014 generating response")
             text = await send_public_response_prompt(session, user_prompt)
 
-            print(f"Phase 1 \u2014 complete: {text[:200]}")
+            print(f"Phase 2 \u2014 complete: {text[:200]}")
 
             if written_files:
-                print(f"Phase 2 \u2014 self-reviewing {len(written_files)} changed file(s)")
+                print(f"Phase 3 \u2014 self-reviewing {len(written_files)} changed file(s)")
                 diff_output = get_git_diff()
 
                 if diff_output:
@@ -2154,16 +2225,16 @@ If you find problems, fix them with patch_codebase_file, batch_patch_codebase_fi
 
                     try:
                         review_result = await send_prompt(session, review_prompt, timeout=600)
-                        print(f"Phase 2 \u2014 complete: {review_result[:200]}")
+                        print(f"Phase 3 \u2014 complete: {review_result[:200]}")
                     except Exception as e:
-                        print(f"Warning: Phase 2 self-review failed \u2014 {e}")
+                        print(f"Warning: Phase 3 self-review failed \u2014 {e}")
 
                 text = audit_claims_vs_diff(text, diff_output)
 
             text = strip_review_preamble(text)
 
             if not (is_reply and is_skip_response(text)):
-                print("Phase 3 \u2014 extracting insights")
+                print("Phase 4 \u2014 extracting insights")
 
                 insight_prompt = f"""Now analyze this resolved issue to extract reusable support insights, if any.
 
@@ -2193,9 +2264,9 @@ Issue #{issue_number}: {title}"""
 
                 try:
                     insight_result = await send_prompt(session, insight_prompt, timeout=180, min_length=1)
-                    print(f"Phase 3 \u2014 complete: {insight_result[:200]}")
+                    print(f"Phase 4 \u2014 complete: {insight_result[:200]}")
                 except Exception as e:
-                    print(f"Warning: Phase 3 insight extraction failed \u2014 {e}")
+                    print(f"Warning: Phase 4 insight extraction failed \u2014 {e}")
 
                 if new_insights:
                     today          = datetime.now().strftime("%Y-%m-%d")
@@ -2214,17 +2285,17 @@ Issue #{issue_number}: {title}"""
                     if new_project:
                         merged = prune_insights(project_insights + new_project)
                         save_json_list(project_insights_path(pid), merged)
-                        print(f"Phase 3 \u2014 stored {len(new_project)} project insight(s)")
+                        print(f"Phase 4 \u2014 stored {len(new_project)} project insight(s)")
 
                     if new_global_ins:
                         merged = prune_insights(global_insights + new_global_ins)
                         save_json_list(global_insights_path(), merged)
-                        print(f"Phase 3 \u2014 stored {len(new_global_ins)} global insight(s)")
+                        print(f"Phase 4 \u2014 stored {len(new_global_ins)} global insight(s)")
 
                     if not new_project and not new_global_ins:
-                        print("Phase 3 \u2014 no new insights")
+                        print("Phase 4 \u2014 no new insights")
                 else:
-                    print("Phase 3 \u2014 no new insights")
+                    print("Phase 4 \u2014 no new insights")
         finally:
             await session.disconnect()
 
