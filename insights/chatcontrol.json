@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "channels",
+    "insight": "Helpop \"ticket\" workflow exists via composed primitives: uncomment the `/helpop` rule in rules/command.rs lines 62-78 to redirect `/helpop <msg>` \u2192 `channel send helpop $2`, staff use `/spy toggle chat helpop` to monitor without joining, and admins \"accept\" by running `/tell <player>` \u2014 Auto_Mode (default on) then routes their subsequent chat as DM until idle threshold. No dedicated accept-button or ticket queue exists.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-07",
+    "issue": 3663
   }
 ]
