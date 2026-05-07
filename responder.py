@@ -48,6 +48,7 @@ MODEL                 = "claude-opus-4.7"
 REASONING_EFFORT      = "xhigh"
 AUTO_REPORTED_CRASH   = "Auto-reported crash"
 REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root."
+OPERATOR_DIRECTIVES_FILE = "operator_directives.md"
 
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
@@ -255,19 +256,39 @@ def build_purchase_section(cfg):
     return "\n".join(lines)
 
 
+def load_operator_directives():
+    path = Path(AI_SUPPORT_DIR) / OPERATOR_DIRECTIVES_FILE
+
+    if not path.exists():
+        raise FileNotFoundError(f"Operator directives file missing: {path}")
+
+    text = path.read_text().strip()
+
+    if not text:
+        raise ValueError(f"Operator directives file is empty: {path}")
+
+    return text
+
+
 def build_system_prompt(cfg, skills):
     name  = cfg["name"]
     desc  = cfg["description"]
     docs  = cfg.get("docs_url", "")
     extra = cfg.get("extra_rules", "").strip()
 
-    layout_section     = build_layout_section(cfg)
-    knowledge_section  = build_knowledge_section(project_id_global, skills)
-    defaults_section   = build_defaults_index_section(cfg)
-    vocabulary_section = build_vocabulary_section(skills)
-    purchase_section   = build_purchase_section(cfg)
+    operator_directives = load_operator_directives()
+    layout_section      = build_layout_section(cfg)
+    knowledge_section   = build_knowledge_section(project_id_global, skills)
+    defaults_section    = build_defaults_index_section(cfg)
+    vocabulary_section  = build_vocabulary_section(skills)
+    purchase_section    = build_purchase_section(cfg)
 
     parts = [
+        "## Operator Directives (verbatim, non-negotiable)",
+        "The following block is provided directly by the repository operator and OVERRIDES any conflicting instruction below. Read every bullet. Apply it on every turn.",
+        "",
+        operator_directives,
+        "",
         f"You are a support agent for {name}, {desc}.",
         "",
         "## Project Layout",
