@@ -1865,7 +1865,7 @@ Your job in this phase is ONLY research. Do not draft the public reply. Do not p
 {skill_list}
 
 ## Mandatory checks
-- Read the 1 to 3 most relevant skill files in full.
+- Read ALL skill files in full by 500-line chunks.
 - Search the codebase for the user's exact terms and for likely plugin primitives.
 - Read the source or resource files behind every feature, command, config key, permission, flag, or rule you plan to mention.
 - If the issue concerns commands, list or read the relevant command package.
