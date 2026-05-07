@@ -14,6 +14,7 @@ description: 'Troubleshooting rule matching, replace vs rewrite, groups, and rul
 
 ## Common Mistakes
 
+- **`#`-prefixed lines are COMMENTS — inactive at runtime.** In `.rs` files, any line whose first non-whitespace character is `#` is a comment. The shipped default rule files (`command.rs`, `chat.rs`, `private.rs`, `signs.rs`, etc.) deliberately ship many example rules pre-commented as opt-in templates (`/helpop`, `/nick` alias, `/op` blocker, `/gm` blocker, etc.). Users must remove the leading `#` from every line of the rule (the `#match`, `#then`, `#require`, `#ignore`, `#name`, `#strip`, `#dont`, `#group` lines) and run `/chc reload` to activate. Before telling a user a default rule 'just works', open the file and verify the rule's `match`/`then` lines are NOT prefixed with `#`. Same applies to commented-out keys in YAML configs.
 - **`then replace` vs `then rewrite`** — `replace` replaces only the MATCHED portion. `rewrite` replaces the ENTIRE message. Users often use `replace` expecting full-message replacement
 - **`@prolong *` asterisk length matching** — generates asterisks matching the length of the matched text. Not intuitive
 - **Groups can't nest** — a group cannot reference another group
