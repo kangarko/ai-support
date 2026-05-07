@@ -271,9 +271,6 @@ def build_system_prompt(cfg, skills):
         "## Knowledge Base",
         knowledge_section,
         "",
-        "## Learned Insights",
-        "You may receive supplementary insights learned from previous issue resolutions. Skill files contain troubleshooting playbooks and known pitfalls; insights are supplementary hints for edge cases discovered through real issues.",
-        "",
     ]
 
     if vocabulary_section:
@@ -729,13 +726,8 @@ def extract_text(value):
     return "\n".join(parts).strip()
 
 
-def extract_last_response(messages, min_length=10):
+def _iter_assistant_texts(messages):
     msg_list = list(messages)
-
-    for i, msg in enumerate(msg_list):
-        msg_type   = read_field(msg, "type")
-        type_value = read_field(msg_type, "value") if msg_type is not None else None
-        print(f"  msg[{i}]: type={type_value}")
 
     for msg in reversed(msg_list):
         msg_type   = read_field(msg, "type")
@@ -751,8 +743,8 @@ def extract_last_response(messages, min_length=10):
 
         text = extract_text(read_field(data, "content"))
 
-        if text and len(text) > min_length:
-            return text
+        if text:
+            yield text
 
     for msg in reversed(msg_list):
         role = normalize_role(read_field(msg, "role"))
@@ -762,44 +754,24 @@ def extract_last_response(messages, min_length=10):
 
         text = extract_text(read_field(msg, "content"))
 
-        if text and len(text) > min_length:
+        if text:
+            yield text
+
+
+def extract_last_message(messages, predicate):
+    for text in _iter_assistant_texts(messages):
+        if predicate(text):
             return text
 
     return ""
+
+
+def extract_last_response(messages, min_length=10):
+    return extract_last_message(messages, lambda t: len(t) > min_length)
 
 
 def extract_last_public_response(messages):
-    msg_list = list(messages)
-
-    for msg in reversed(msg_list):
-        msg_type   = read_field(msg, "type")
-        type_value = str(read_field(msg_type, "value") or "") if msg_type is not None else ""
-
-        if type_value.lower() != "assistant.message":
-            continue
-
-        data = read_field(msg, "data")
-
-        if data is None:
-            continue
-
-        text = extract_text(read_field(data, "content"))
-
-        if text and (is_skip_response(text) or has_complete_public_response(text)):
-            return text
-
-    for msg in reversed(msg_list):
-        role = normalize_role(read_field(msg, "role"))
-
-        if role != "assistant":
-            continue
-
-        text = extract_text(read_field(msg, "content"))
-
-        if text and (is_skip_response(text) or has_complete_public_response(text)):
-            return text
-
-    return ""
+    return extract_last_message(messages, lambda t: is_skip_response(t) or has_complete_public_response(t))
 
 
 def with_required_prompt_text(prompt):
@@ -841,12 +813,44 @@ def validate_path(path_str):
 
 def _resolve_write_target(path_str):
     if path_str.startswith(MAIN_DIR + "/"):
-        return MAIN_DIR, path_str[len(MAIN_DIR) + 1:], writable_prefixes
+        return path_str[len(MAIN_DIR) + 1:], writable_prefixes
 
     if path_str.startswith(FOUNDATION_DIR + "/"):
-        return FOUNDATION_DIR, path_str[len(FOUNDATION_DIR) + 1:], FOUNDATION_WRITABLE_PREFIXES
+        return path_str[len(FOUNDATION_DIR) + 1:], FOUNDATION_WRITABLE_PREFIXES
 
     return None
+
+
+def _validate_writable_path(path_str, action):
+    target = _resolve_write_target(path_str)
+
+    if not target:
+        return None, "Error: Path must start with 'main/' or 'foundation/'."
+
+    relative, prefixes = target
+
+    if not any(relative.startswith(prefix) for prefix in prefixes):
+        return None, f"Error: Can only {action} source/resource directories under src/main/. Got: {relative}"
+
+    filename = Path(path_str).name
+
+    if filename in BLOCKED_FILENAMES:
+        return None, f"Error: Cannot modify build file: {filename}"
+
+    ext = Path(path_str).suffix.lower()
+
+    if ext not in WRITABLE_EXTENSIONS:
+        return None, f"Error: Cannot {action} {ext} files. Allowed: {', '.join(sorted(WRITABLE_EXTENSIONS))}"
+
+    if "/target/" in path_str:
+        return None, f"Error: Cannot {action} files in target/ (build output) directories."
+
+    resolved = validate_path(path_str)
+
+    if not resolved:
+        return None, "Error: Invalid path."
+
+    return resolved, None
 
 
 class ReadFileParams(BaseModel):
@@ -961,33 +965,10 @@ class WriteFileParams(BaseModel):
 
 @define_tool(description="Create a NEW source/config file in the project or Foundation repository. Only for files that don't exist yet. For editing existing files, use patch_codebase_file instead. Path must start with 'main/' or 'foundation/' and be under a src/main/ directory. Cannot modify build files or .github/. Changes are submitted as a draft PR for human review.")
 def write_codebase_file(params: WriteFileParams) -> str:
-    target = _resolve_write_target(params.path)
+    resolved, error = _validate_writable_path(params.path, "write to")
 
-    if not target:
-        return "Error: Path must start with 'main/' or 'foundation/'."
-
-    repo_dir, relative, prefixes = target
-
-    if not any(relative.startswith(prefix) for prefix in prefixes):
-        return f"Error: Can only write to source/resource directories under src/main/. Got: {relative}"
-
-    filename = Path(params.path).name
-
-    if filename in BLOCKED_FILENAMES:
-        return f"Error: Cannot modify build file: {filename}"
-
-    ext = Path(params.path).suffix.lower()
-
-    if ext not in WRITABLE_EXTENSIONS:
-        return f"Error: Cannot write {ext} files. Allowed: {', '.join(sorted(WRITABLE_EXTENSIONS))}"
-
-    if "/target/" in params.path:
-        return "Error: Cannot write to target/ (build output) directories."
-
-    resolved = validate_path(params.path)
-
-    if not resolved:
-        return "Error: Invalid path."
+    if error:
+        return error
 
     if resolved.exists():
         return f"Error: File already exists: {params.path}. Use patch_codebase_file to edit existing files."
@@ -1053,33 +1034,10 @@ def batch_patch_codebase_files(params: BatchPatchParams) -> str:
 
 @define_tool(description="Edit an existing source/config file in the project or Foundation repository by replacing a specific text snippet. Use this instead of write_codebase_file for all edits to existing files. Path must start with 'main/' or 'foundation/'. The old_text must appear exactly once in the file. Include 2-3 lines of context around the change to ensure uniqueness. When making multiple related edits, prefer batch_patch_codebase_files instead.")
 def patch_codebase_file(params: PatchFileParams) -> str:
-    target = _resolve_write_target(params.path)
+    resolved, error = _validate_writable_path(params.path, "edit")
 
-    if not target:
-        return "Error: Path must start with 'main/' or 'foundation/'."
-
-    repo_dir, relative, prefixes = target
-
-    if not any(relative.startswith(prefix) for prefix in prefixes):
-        return f"Error: Can only edit source/resource directories under src/main/. Got: {relative}"
-
-    filename = Path(params.path).name
-
-    if filename in BLOCKED_FILENAMES:
-        return f"Error: Cannot modify build file: {filename}"
-
-    ext = Path(params.path).suffix.lower()
-
-    if ext not in WRITABLE_EXTENSIONS:
-        return f"Error: Cannot edit {ext} files. Allowed: {', '.join(sorted(WRITABLE_EXTENSIONS))}"
-
-    if "/target/" in params.path:
-        return "Error: Cannot edit files in target/ (build output) directories."
-
-    resolved = validate_path(params.path)
-
-    if not resolved:
-        return "Error: Invalid path."
+    if error:
+        return error
 
     if not resolved.exists() or not resolved.is_file():
         return f"Error: File not found: {params.path}. Use write_codebase_file to create new files."
