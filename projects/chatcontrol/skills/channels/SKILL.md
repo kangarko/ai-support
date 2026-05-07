@@ -9,8 +9,6 @@ description: 'Troubleshooting channel system: messaging, range, modes, proxy, an
 
 When a user describes what they want using non-plugin terms, translate FIRST, then search. Most "this feature doesn't exist" mistakes come from taking the user's words literally instead of mapping them to what ChatControl actually ships.
 
-- "ticket" / "helpdesk" / "request to staff" / "report to admins" / "flag for staff"
-  → The shipped `/helpop <message>` flow: the default rule in `chatcontrol-bukkit/src/main/resources/rules/command.rs` matches `^([/]helpop) (.*)` and runs `channel send helpop $2`, dispatching one message to the `helpop` channel without the player having to join. Staff either join the `helpop` channel (declared in `settings.yml` under `Channels.List.helpop` with format `chatcontrol-bukkit/src/main/resources/formats/helpop.yml`) or run `/spy toggle chat helpop` to see messages passively. Reply by typing in the channel or via `/tell <player>`.
 - "send one message without joining" / "broadcast to a channel I'm not in"
   → `/channel send <channel> <message>` — see `command/channel/SendChannelSubCommand.java`.
 - "send as another player" / "post on someone's behalf"
@@ -25,7 +23,7 @@ When a user describes what they want using non-plugin terms, translate FIRST, th
   → A channel with `Range: party` or `Party: <provider>` (Towny, Factions, Lands, mcMMO, SimpleClans, Parties). For 2-player private DMs use the `/tell` system, not channels.
 - "filter / block / replace words in chat"
   → Rules engine (`chatcontrol-bukkit/src/main/resources/rules/chat.rs`), not channels.
-- "alias /h to /helpop" / "rename a command"
+- "alias /h to /helpop" / "rename a command" / "create a command"
   → Default rules in `command.rs` already map `/helpop`, `/nick`, `/help`, `/ping` etc. as a pattern. Add a new `#match ^[/]<alias>` block and `#then command <real command> $1`.
 
 If a translation isn't listed here and you're tempted to refuse, follow the prove-the-gap rule: cite the rule files and command directory you searched, and which terms you grep'd, BEFORE saying it doesn't exist.
