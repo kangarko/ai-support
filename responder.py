@@ -200,6 +200,36 @@ def build_defaults_index_section(cfg):
     return "\n".join(lines)
 
 
+def build_vocabulary_section(skills):
+    blocks = []
+
+    for s in skills:
+        try:
+            content = Path(s["path"]).read_text(errors="replace")
+        except Exception:
+            continue
+
+        match = re.search(r"^##\s+Vocabulary\b[^\n]*\n(.+?)(?=^##\s|\Z)", content, re.DOTALL | re.MULTILINE)
+
+        if not match:
+            continue
+
+        body = match.group(1).strip()
+
+        if body:
+            blocks.append(f"### From skill `{s['dir']}`\n{body}")
+
+    if not blocks:
+        return ""
+
+    header = [
+        "User phrasing rarely matches the plugin's actual command/config names. Translate FIRST, then search. Most false 'feature doesn't exist' answers come from taking the user's words literally.",
+        "",
+    ]
+
+    return "\n".join(header + blocks)
+
+
 def build_purchase_section(cfg):
     name   = cfg["name"]
     links  = cfg.get("purchase_links", {})
@@ -231,10 +261,11 @@ def build_system_prompt(cfg, skills):
     docs  = cfg.get("docs_url", "")
     extra = cfg.get("extra_rules", "").strip()
 
-    layout_section    = build_layout_section(cfg)
-    knowledge_section = build_knowledge_section(project_id_global, skills)
-    defaults_section  = build_defaults_index_section(cfg)
-    purchase_section  = build_purchase_section(cfg)
+    layout_section     = build_layout_section(cfg)
+    knowledge_section  = build_knowledge_section(project_id_global, skills)
+    defaults_section   = build_defaults_index_section(cfg)
+    vocabulary_section = build_vocabulary_section(skills)
+    purchase_section   = build_purchase_section(cfg)
 
     parts = [
         f"You are a support agent for {name}, {desc}.",
@@ -249,6 +280,13 @@ def build_system_prompt(cfg, skills):
         "You may receive supplementary insights learned from previous issue resolutions. Skill files contain troubleshooting playbooks and known pitfalls; insights are supplementary hints for edge cases discovered through real issues.",
         "",
     ]
+
+    if vocabulary_section:
+        parts.extend([
+            "## Vocabulary Cheatsheet",
+            vocabulary_section,
+            "",
+        ])
 
     if defaults_section:
         parts.extend([
@@ -289,7 +327,9 @@ def build_system_prompt(cfg, skills):
         "- Never put multiple statements on a single line inside braces. Always expand to multiple lines",
         "",
         "## Your Behavior",
-        "- **Prove feature gaps with evidence before claiming them.** Before saying a requested capability does not exist, you MUST first cite EITHER (a) the default resource files (rules/, formats/, messages/, variables/, prototype/, lang/) you grep'd or read AND the exact terms you searched for, OR (b) the command source directory you listed AND the subcommands you ruled out. The Shipped Defaults Index above tells you exactly where to look. If you cannot cite this evidence, the correct action is to keep searching — not to refuse. Many features ship as default rules or built-in subcommands and are NOT mentioned in skill files. Vocabulary mismatch is the #1 cause of false 'this feature doesn't exist' answers: when the user uses words like 'ticket', 'helpdesk', 'one-shot', 'auto-switch', 'monitor', 'broadcast', 'forward', etc., translate them to plugin primitives (channel send / spy / rules / formats / region hooks) before searching. Only AFTER you have proven the gap with citations: (1) state plainly the feature doesn't exist, (2) if small enough to implement, propose a code change via patch/PR, (3) if too large, label it a feature request and stop. Skill files may include a `## Vocabulary` block mapping user phrasing to the plugin's actual command/config names — check that block first when the user's wording is ambiguous.",
+        "- **Prove feature gaps with evidence before claiming them.** Before saying a requested capability does not exist, you MUST first cite EITHER (a) the default resource files (rules/, formats/, messages/, variables/, prototype/, lang/) you grep'd or read AND the exact terms you searched for, OR (b) the command source directory you listed AND the subcommands you ruled out. The Shipped Defaults Index above tells you exactly where to look. If you cannot cite this evidence, the correct action is to keep searching — not to refuse. Many features ship as default rules or built-in subcommands and are NOT mentioned in skill files. Vocabulary mismatch is the #1 cause of false 'this feature doesn't exist' answers: when the user uses words like 'ticket', 'helpdesk', 'one-shot', 'auto-switch', 'monitor', 'broadcast', 'forward', etc., translate them to plugin primitives (channel send / spy / rules / formats / region hooks) before searching. Only AFTER you have proven the gap with citations: (1) state plainly the feature doesn't exist, (2) if small enough to implement, propose a code change via patch/PR, (3) if too large, label it a feature request and stop. The Vocabulary Cheatsheet above is the FIRST place to check when the user's wording is ambiguous — if a translation exists there, use it before searching.",
+        "- **Partial-feature trap.** Acknowledging that part of a feature exists (e.g. 'a helpop channel exists, but no accept workflow') and then refusing is the same hallucination as refusing outright. If a primitive exists, describe how staff USE it end-to-end (how they see the message, how they reply) using the actual shipped tools (e.g. `/spy toggle chat <channel>`, `/channel join <channel>`, `/tell <player>`). Never declare 'no workflow' just because the workflow is composed of multiple existing commands instead of a single named feature.",
+        "- **Never invent permissions, flags, config keys, or commands for any plugin (this one OR third-party).** If you cite `chatcontrol.channel.autojoin.<channel>`, a WorldGuard flag, a Lands setting, a Towny perm, etc., it MUST be a verbatim string you found via `search_codebase`, `fetch_github_file`, or the plugin's official docs in this turn. Do not extrapolate names from naming conventions. If you cannot cite the exact source, do not name the permission/flag — instead describe the behavior in plain English and say the user must consult that plugin's docs.",
         "- **Don't loop.** If you've already told the user something isn't possible and they ask again or push back, do not invent new workaround angles. Reiterate your answer in one sentence and, if appropriate, tag the repository owner for a decision. Circling through 5+ workarounds for a missing feature is the worst user experience",
         "- **Commit to a single scope before writing code.** When a follow-up comment expands the original request (e.g. user asks for additional operators, new checks, broader detection), finalize the full scope in ONE message before implementing anything. Never send multiple messages with changing or contradictory designs — pick one approach, state it clearly, then implement exactly that. If the scope changes mid-conversation, update the PR description and diff to match",
         "- **Never promise features you haven't implemented.** If your response describes new operators, config keys, or capabilities, they MUST appear in your actual code changes. Before posting a response that claims 'I've added X', verify X exists in your patches. If you planned to implement something but ran out of context or couldn't complete it, say 'this would need to be implemented' — never describe it as done",
