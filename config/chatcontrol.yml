@@ -34,6 +34,25 @@ key_files:
   - chatcontrol-bukkit/src/main/resources/database.yml
   - chatcontrol-bukkit/src/main/resources/proxy.yml
 
+# Default resource files that ship with the plugin and define out-of-the-box behavior.
+# The responder lists these in the system prompt so the bot can verify whether a
+# requested feature already exists before claiming it doesn't. Globs are evaluated
+# relative to the plugin source root (MAIN_DIR at runtime).
+default_resources_globs:
+  - chatcontrol-bukkit/src/main/resources/rules/*.rs
+  - chatcontrol-bukkit/src/main/resources/messages/*.rs
+  - chatcontrol-bukkit/src/main/resources/formats/*.yml
+  - chatcontrol-bukkit/src/main/resources/variables/*.yml
+  - chatcontrol-bukkit/src/main/resources/books/*.yml
+  - chatcontrol-bukkit/src/main/resources/prototype/*.yml
+
+# Java packages that contain commands/subcommands. Listed (not opened) in the prompt
+# so the bot knows where to look for shipped command surface area.
+command_dirs:
+  - chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/command
+  - chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/command/channel
+  - chatcontrol-bukkit/src/main/java/org/mineacademy/chatcontrol/command/chatcontrol
+
 purchase_links:
   main:
     name: "ChatControl (Bukkit/Spigot/Paper)"

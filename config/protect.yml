@@ -17,6 +17,16 @@ key_files:
   - src/main/resources/rules/main.rs
   - src/main/resources/rules/group.rs
 
+# Default resource files that ship with the plugin. Listed in the system prompt so
+# the bot verifies whether a requested feature already exists before refusing.
+# Globs are evaluated relative to the plugin source root (MAIN_DIR at runtime).
+default_resources_globs:
+  - src/main/resources/rules/*.rs
+
+# Java packages containing commands/subcommands.
+command_dirs:
+  - src/main/java/org/mineacademy/protect/command
+
 purchase_links:
   main:
     name: "Protect"

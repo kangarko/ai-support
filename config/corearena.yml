@@ -14,6 +14,17 @@ writable_prefixes:
 key_files:
   - src/main/resources/settings.yml
 
+# Default resource files that ship with the plugin. The prototype/ folder contains
+# template arena/class/upgrade configs that serve as user-facing defaults.
+# Globs are evaluated relative to the plugin source root (MAIN_DIR at runtime).
+default_resources_globs:
+  - src/main/resources/prototype/*.yml
+  - src/main/resources/lang/*.json
+
+# Java packages containing commands/subcommands.
+command_dirs:
+  - src/main/java/org/mineacademy/corearena/command
+
 purchase_links:
   main:
     name: "CoreArena"

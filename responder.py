@@ -157,6 +157,49 @@ def build_knowledge_section(pid, skills):
     return "\n".join(lines)
 
 
+def build_defaults_index_section(cfg):
+    globs    = cfg.get("default_resources_globs", [])
+    cmd_dirs = cfg.get("command_dirs", [])
+
+    if not globs and not cmd_dirs:
+        return ""
+
+    lines = [
+        "These shipped resource files and command source directories define the plugin's out-of-the-box behavior.",
+        "Many features (default rules, format files, built-in subcommands) are wired up by default and are NOT mentioned in skill files.",
+        "Before claiming a requested feature does not exist, you MUST grep or read the relevant files below.",
+        "",
+    ]
+
+    if globs:
+        lines.append("### Default resource files (read with read_codebase_file using the `main/` prefix):")
+        seen = []
+
+        for pattern in globs:
+            full    = os.path.join(MAIN_DIR, pattern)
+            matches = sorted(glob_files(full))
+
+            if matches:
+                for match_path in matches:
+                    rel = os.path.relpath(match_path)
+
+                    if rel not in seen:
+                        seen.append(rel)
+                        lines.append(f"- {rel}")
+            else:
+                lines.append(f"- {os.path.join(MAIN_DIR, pattern)} (glob — run list_directory on the parent to enumerate)")
+
+        lines.append("")
+
+    if cmd_dirs:
+        lines.append("### Command source directories (list with list_directory using the `main/` prefix to discover subcommands):")
+
+        for cmd_dir in cmd_dirs:
+            lines.append(f"- {os.path.join(MAIN_DIR, cmd_dir)}")
+
+    return "\n".join(lines)
+
+
 def build_purchase_section(cfg):
     name   = cfg["name"]
     links  = cfg.get("purchase_links", {})
@@ -190,6 +233,7 @@ def build_system_prompt(cfg, skills):
 
     layout_section    = build_layout_section(cfg)
     knowledge_section = build_knowledge_section(project_id_global, skills)
+    defaults_section  = build_defaults_index_section(cfg)
     purchase_section  = build_purchase_section(cfg)
 
     parts = [
@@ -204,9 +248,19 @@ def build_system_prompt(cfg, skills):
         "## Learned Insights",
         "You may receive supplementary insights learned from previous issue resolutions. Skill files contain troubleshooting playbooks and known pitfalls; insights are supplementary hints for edge cases discovered through real issues.",
         "",
+    ]
+
+    if defaults_section:
+        parts.extend([
+            "## Shipped Defaults Index",
+            defaults_section,
+            "",
+        ])
+
+    parts.extend([
         "## Purchase Links",
         purchase_section,
-    ]
+    ])
 
     if extra:
         parts.extend(["", "## Additional Rules", extra])
@@ -235,7 +289,7 @@ def build_system_prompt(cfg, skills):
         "- Never put multiple statements on a single line inside braces. Always expand to multiple lines",
         "",
         "## Your Behavior",
-        "- **Recognize feature gaps immediately.** If after reading the relevant source code and skill files you confirm that a requested capability does not exist (no config key, no toggle, no command, no code path), say so plainly in your FIRST response. Do not suggest workarounds that approximate the missing functionality across multiple replies — that wastes the user's time. Instead: (1) state clearly that the feature doesn't exist yet, (2) if the gap is small enough to implement, propose a code change via patch/PR, (3) if it's too large or architectural, label it as a feature request for the developer and stop",
+        "- **Prove feature gaps with evidence before claiming them.** Before saying a requested capability does not exist, you MUST first cite EITHER (a) the default resource files (rules/, formats/, messages/, variables/, prototype/, lang/) you grep'd or read AND the exact terms you searched for, OR (b) the command source directory you listed AND the subcommands you ruled out. The Shipped Defaults Index above tells you exactly where to look. If you cannot cite this evidence, the correct action is to keep searching — not to refuse. Many features ship as default rules or built-in subcommands and are NOT mentioned in skill files. Vocabulary mismatch is the #1 cause of false 'this feature doesn't exist' answers: when the user uses words like 'ticket', 'helpdesk', 'one-shot', 'auto-switch', 'monitor', 'broadcast', 'forward', etc., translate them to plugin primitives (channel send / spy / rules / formats / region hooks) before searching. Only AFTER you have proven the gap with citations: (1) state plainly the feature doesn't exist, (2) if small enough to implement, propose a code change via patch/PR, (3) if too large, label it a feature request and stop. Skill files may include a `## Vocabulary` block mapping user phrasing to the plugin's actual command/config names — check that block first when the user's wording is ambiguous.",
         "- **Don't loop.** If you've already told the user something isn't possible and they ask again or push back, do not invent new workaround angles. Reiterate your answer in one sentence and, if appropriate, tag the repository owner for a decision. Circling through 5+ workarounds for a missing feature is the worst user experience",
         "- **Commit to a single scope before writing code.** When a follow-up comment expands the original request (e.g. user asks for additional operators, new checks, broader detection), finalize the full scope in ONE message before implementing anything. Never send multiple messages with changing or contradictory designs — pick one approach, state it clearly, then implement exactly that. If the scope changes mid-conversation, update the PR description and diff to match",
         "- **Never promise features you haven't implemented.** If your response describes new operators, config keys, or capabilities, they MUST appear in your actual code changes. Before posting a response that claims 'I've added X', verify X exists in your patches. If you planned to implement something but ran out of context or couldn't complete it, say 'this would need to be implemented' — never describe it as done",
