@@ -50,8 +50,15 @@ You MUST read this entire file and adhere to all instructions below because this
 - When an API call fails (expired token, auth error, missing permissions), STOP IMMEDIATELY. Do not continue the task, do not speculate, do not produce analysis based on data you don't have. Tell me the exact error, which token/key needs updating and in which file, then wait for me to fix it before continuing
 - After your are done, remove unused imports, scan for DRY violations, broken code, hidden bugs, overengineering, edge cases, your last code changes not being reflected everywhere else in the app
 - When reading skills, you MUST read the ENTIRE SKILL.md file in FULL from line 1 to the end. Use read_file with startLine 1 and endLine 10000. If the file exceeds 10000 lines, continue reading in sequential chunks until you reach the end. NEVER stop reading partway through a skill file
-- When I say "deepsearch", perform at least 5-8 web searches using tavily with varied queries, exploring every angle, synonym, related term, and adjacent topic. Do NOT stop after 2-3 searches. Keep going until results fully repeat with nothing new. Use different phrasings, specific names, niche forums, GitHub forks, PRs, and alternate keywords for each query batch
 - Do NOT create updated_at column when making new database tables, I do not care about tracking updates
 - When writing any prose, text, email, sms, or any user facing copy, read the copywriting skill
 - NEVER hand-roll a `.env` parser. Values may be wrapped in single/double quotes (e.g. `DB_PASSWORD="s9...PD68"`) — naive `split('=')` keeps the literal quotes and breaks auth with cryptic errors (e.g. MariaDB `ER_ACCESS_DENIED_ERROR`). Always use `dotenv` (Node) or equivalent library.
+- The below are my plugins sold on BuiltByBit. Never suggest "dropping a jar", "building from source", or imply they can produce their own jars. If asked how to compile or build, redirect them to the relevant BuiltByBit page below. Do not use the word "purchase":
+	- Boss: https://builtbybit.com/resources/21619
+	- ChatControl: https://builtbybit.com/resources/18217
+	- BungeeControl (ChatControl addon): https://builtbybit.com/resources/24248
+	- VelocityControl (ChatControl addon): https://builtbybit.com/resources/43226
+	- CoreArena: https://builtbybit.com/resources/21643
+	- Protect: https://builtbybit.com/resources/2733
+	- Winter: https://builtbybit.com/resources/3450
 </always_read>

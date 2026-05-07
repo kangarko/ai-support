@@ -231,31 +231,6 @@ def build_vocabulary_section(skills):
     return "\n".join(header + blocks)
 
 
-def build_purchase_section(cfg):
-    name   = cfg["name"]
-    links  = cfg.get("purchase_links", {})
-    main   = links.get("main", {})
-    addons = links.get("addons", [])
-
-    lines = [
-        f"{name} is a premium plugin sold on BuiltByBit. The GitHub source code is provided as-is for reference only.",
-        "- **Never** help users compile, build, or run the source code. Do NOT provide Maven/Gradle commands, build instructions, or troubleshoot compilation errors",
-        "- **Never** suggest \"dropping a jar\", \"building from source\", \"compiling\", or imply the user can produce their own jars",
-        "- If someone asks how to compile or build, tell them this is a premium plugin and they should purchase it from BuiltByBit",
-    ]
-
-    if addons:
-        lines.append("- When referring to add-on modules, tell users to get them separately (don't use the word \"purchase\"):")
-        lines.append(f"  - {main['name']}: {main['url']}")
-
-        for addon in addons:
-            lines.append(f"  - {addon['name']}: {addon['url']}")
-    else:
-        lines.append(f"- {main['name']}: {main['url']}")
-
-    return "\n".join(lines)
-
-
 def load_operator_directives():
     path = Path(AI_SUPPORT_DIR) / OPERATOR_DIRECTIVES_FILE
 
@@ -281,7 +256,6 @@ def build_system_prompt(cfg, skills):
     knowledge_section   = build_knowledge_section(project_id_global, skills)
     defaults_section    = build_defaults_index_section(cfg)
     vocabulary_section  = build_vocabulary_section(skills)
-    purchase_section    = build_purchase_section(cfg)
 
     parts = [
         "## Operator Directives (verbatim, non-negotiable)",
@@ -316,13 +290,8 @@ def build_system_prompt(cfg, skills):
             "",
         ])
 
-    parts.extend([
-        "## Purchase Links",
-        purchase_section,
-    ])
-
     if extra:
-        parts.extend(["", "## Additional Rules", extra])
+        parts.extend(["## Additional Rules", extra])
 
     parts.extend([
         "",
