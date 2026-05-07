@@ -24,13 +24,13 @@ extra_rules: |
   - Terrain Snow_Generation places/melts snow blocks around players; this is separate from cosmetic Snow particles
   - Psycho snowmen are aggressive snowmen that attack players; converted from normal snowmen or spawned via /winter psycho
   - Monster-to-snowman transformation: chance-based conversion of spawned mobs (configurable entity types)
-  - Biome disguise requires ProtocolLib and only works on specific MC versions (1.7.10, 1.8.8, 1.11, 1.12, 1.16, 1.17)
+  - Biome disguise requires the PacketEvents plugin and supports MC 1.8.x through 26.1+
   - NOT compatible with Folia or Luminol
 
 docs_url: "https://docs.mineacademy.org/winter/"
 
 known_dependencies:
-  ProtocolLib: dmulloy2/ProtocolLib
+  packetevents: retrooper/packetevents
   WorldEdit: EngineHub/WorldEdit
   WorldGuard: EngineHub/WorldGuard
   Vault: MilkBowl/VaultAPI

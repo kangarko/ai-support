@@ -9,7 +9,7 @@
   },
   {
     "topic": "Trace the exact code path before proposing a fix",
-    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (ProtocolLib packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary ProtocolLib dependency."
+    "insight": "When a feature is reported broken, trace which specific code path that feature uses before suggesting a fix. Do not assume a workaround for problem A also fixes problem B just because both involve the same subsystem. Read the actual method calls: if feature X calls dispatchCommand(), verify the fix targets dispatchCommand() — not an unrelated packet interception path. Learned from ChatControl #3511 where the bot confused the Folia Conversation API workaround (PacketEvents packet interception) with Auto_Mode's command dispatch (entity-thread scheduling), proposing an unnecessary PacketEvents dependency."
   },
   {
     "topic": "Guard cache lookups in async event handlers",

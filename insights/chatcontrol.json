@@ -16,8 +16,8 @@
     "issue": 3508
   },
   {
-    "topic": "folia-automode-no-protocollib",
-    "insight": "Auto_Mode on Folia does NOT require ProtocolLib. Auto_Mode uses dispatchCommand('/tell ...') which flows through Foundation's BukkitPlayer.performPlayerCommand0(), which on Folia uses player.getScheduler().run() for correct entity-thread scheduling. The Folia disable check in Settings.java was outdated and can be removed entirely. The ProtocolLib-based conversation fix in BukkitPacketListener is for a completely different feature (Bukkit's Conversation API with player.isConversing()/acceptConversationInput()), NOT for Auto_Mode.",
+    "topic": "folia-automode-no-packetevents",
+    "insight": "Auto_Mode on Folia does NOT require PacketEvents. Auto_Mode uses dispatchCommand('/tell ...') which flows through Foundation's BukkitPlayer.performPlayerCommand0(), which on Folia uses player.getScheduler().run() for correct entity-thread scheduling. The Folia disable check in Settings.java was outdated and can be removed entirely. The PacketEvents-based conversation fix in BukkitPacketListener is for a completely different feature (Bukkit's Conversation API with player.isConversing()/acceptConversationInput()), NOT for Auto_Mode.",
     "related_skill": "private-messaging",
     "scope": "project",
     "date": "2026-03-16",

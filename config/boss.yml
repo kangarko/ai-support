@@ -42,7 +42,7 @@ known_dependencies:
   RoseStacker: Rosewood-Development/RoseStacker
   Vault: MilkBowl/VaultAPI
   PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
-  ProtocolLib: dmulloy2/ProtocolLib
+  packetevents: retrooper/packetevents
   Towny: TownyAdvanced/Towny
   DiscordSRV: DiscordSRV/DiscordSRV
   LuckPerms: LuckPerms/LuckPerms

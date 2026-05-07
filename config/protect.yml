@@ -42,7 +42,7 @@ known_dependencies:
   EconomyShopGUI: Gypopo/EconomyShopGUI-API
   Vault: MilkBowl/VaultAPI
   PlaceholderAPI: PlaceholderAPI/PlaceholderAPI
-  ProtocolLib: dmulloy2/ProtocolLib
+  packetevents: retrooper/packetevents
   DiscordSRV: DiscordSRV/DiscordSRV
   Towny: TownyAdvanced/Towny
   LuckPerms: LuckPerms/LuckPerms
