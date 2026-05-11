@@ -36,10 +36,10 @@ extra_rules: |
   - The 17 built-in skills are: Arrow, Bomb, Confuse, Disarm, Enderman, Ignite, Fireball, Freeze, Lightning, Minions, Potions, StealLife, Teleport, Throw, Commands, Commands_Nearby, Commands_Target
   - The 5 spawn rule types are: LOCATION_PERIOD, RESPAWN_AFTER_DEATH, REGION_ENTER, PERIOD, REPLACE_VANILLA
   - Boss supports Citizens NPC integration and ModelEngine custom models
-  - Boss has TWO pathfinder/targeting systems for making any mob (including passive) hostile:
-    1. Native Paper Goal API (Paper 1.15.2+): Set "Native_Attack_Goal_Enabled: true" in the boss YAML or toggle via menu Settings → Pathfinders → Native → Attack Goal. This injects GoalPlayerTarget (find nearest player within 16 blocks) and GoalMeleeAttackPlayer (pathfind + melee attack) using Paper's com.destroystokyo.paper.entity.ai.Goal API. It also registers ATTACK_DAMAGE attribute if missing. Works on ANY mob type including passive mobs (cow, pig, fox, etc.)
-    2. Citizens NPC integration: Set Citizens.Goal_Target_Enabled + Citizens.Goal_Target_Aggressive in the boss YAML. This uses Citizens' Navigator API with BossTargetNearbyEntityGoal to target configurable entity types within a radius
-  - The Native Goal system is checked via GoalManagerCheck which verifies com.destroystokyo.paper.entity.ai.Goal class and Bukkit.getMobGoals() method exist
+  - Boss 6.0.0+ unified AI under one menu: Settings → AI & Behavior. The legacy `Native_Attack_Goal_Enabled` flag and the `Citizens.Goal_Target_Aggressive` flag are gone. Both are migrated automatically on first load.
+  - To make any mob (including passive) hostile, the admin sets in the boss YAML under Citizens: `Goal_Target_Enabled: true`, `Goal_Target_Follow: true`, `Goal_Target_Attack: true`, `Goal_Target_Radius: 16`, `Goal_Target_Entities: [PLAYER]`. Follow and Attack are independent toggles: Follow without Attack means trail without striking; Attack without Follow means strike on contact without pursuit.
+  - Routing: PLAYER bosses always go through Citizens (skins, traits). Non-PLAYER bosses on Paper 1.15+ always go through the native Paper Goal API. On Paper < 1.15 non-PLAYER bosses use Citizens iff `Citizens.Enabled: true` is set in the boss YAML.
+  - The native Goal API availability is checked via GoalManagerCheck (verifies com.destroystokyo.paper.entity.ai.Goal class and Bukkit.getMobGoals() method exist).
 
 docs_url: "https://docs.mineacademy.org/boss/"
 
