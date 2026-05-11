@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "topic": "arenas",
+    "insight": "In `SimpleMessenger.replaceVariables`, `{players}` must use `arena.getPlayers().size()`, not `getRecipients().size()`. With `Join_Broadcast_Target: WORLD` or `SERVER`, recipients include world/server players, so `{players}` would show the world/server total instead of the arena participant count.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-11",
+    "issue": 617
+  }
+]
