@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,21 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "groups",
+    "insight": "`Channels:` is NOT a valid key under a `Groups:` entry \u2014 it triggers the \"Skipping invalid group setting key: Channels\" warning. Valid group keys are limited to: max_read_channels, message_delay, message_similarity, command_delay, command_similarity, sound_notify_format, motd_format. Auto-joining players to a channel is done via the permission `chatcontrol.channel.autojoin.<channel>.<mode>`, not a group setting.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-11",
+    "issue": 3664
+  },
+  {
+    "topic": "channels",
+    "insight": "Party channels (Party: mcmmo-party/towny/etc.) only filter RECEIVERS, not the sender \u2014 a non-party player joined to the channel can type and gets silent echo. Nashorn `require script` cannot resolve third-party plugin classes (`Java.type(\"com.gmail.nossr50.api.PartyAPI\")` throws ClassNotFoundException on modern Paper), so a JS-rule sender block is not viable; only a code-level check works.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-11",
+    "issue": 3664
   }
 ]
