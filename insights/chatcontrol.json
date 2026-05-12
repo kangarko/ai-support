@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "Image_Head is a Format-part-only feature rendering a multi-line ASCII block (default 8 lines) via ChatImage.drawFromHead. No `<head>` MiniMessage tag is registered (SimpleComponent uses TagResolver.standard() only); the \"head\" entry in Colors.java:236 is just a permission whitelist for `chatcontrol.color.action.head`, not a parser. Inline single-glyph heads in vanilla chat require a resource-pack font, not feasible in ChatControl alone.",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-05-12",
+    "issue": 3670
   }
 ]
