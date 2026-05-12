@@ -48,3 +48,15 @@ Parts:
 ```
 
 The `/chc a image <file> <height> <message>` command is for **one-time broadcast announcements only** — it cannot be used inside format files.
+
+## Inline Player Heads and Sprites via MiniMessage (`<head:>` / `<sprite:>`)
+
+Foundation ships Adventure 5.0.0, which adds two standard MiniMessage tags that work anywhere a format `Message` (or rule rewrite) is parsed: `<head:name|uuid|texture[:outer_layer]>` and `<sprite:[atlas:]sprite>`. They render as native vanilla "object" chat components, so they need a client on **MC 1.21.9+**. On older clients they fall back to plain text.
+
+These are NOT custom Foundation/ChatControl resolvers, they come from `TagResolver.standard()`. So:
+
+- `<head:Notch>` inline in a chat format Message renders Notch's head next to the text on supported clients. Different rendering from `Image_Head` (the format-part key), which draws an 8-line ASCII block from the skin texture and only sits beside text, not inside it.
+- Players need `chatcontrol.tag.action.head` to use `<head:>` themselves (see `Colors.hasPermissionForTag`). Same pattern applies to `<sprite>`, `<click>`, `<hover>`, etc.
+- Because these are real standard tags, an unknown-tag rule rewrite like `[head:player] -> <head:player>` works — the previously raised concern that `<head>` "gets dropped silently by MiniMessage" is wrong on Adventure 4.25.0+.
+
+When asked whether a MiniMessage tag exists, do not assume from memory. Check the current Adventure standard tag list (https://docs.papermc.io/adventure/minimessage/format/) — the standard set grew in 2025 (`pride`, `sprite`, `head`, `shadow`).
