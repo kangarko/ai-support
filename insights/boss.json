@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "HookManager.isCitizensLoaded() only probes `net.citizensnpcs.api.ai.tree.Behavior`, but BossAI.registerCitizensTraits() calls `CitizensAPI.getTraitFactory()`. If Citizens fails to enable (corrupted jar, classloader issue), Behavior can resolve while CitizensAPI does not, crashing Boss at startup with NoClassDefFoundError on CitizensAPI. Foundation PR #444 hardens the probe to also check CitizensAPI.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-15",
+    "issue": 1511
   }
 ]
