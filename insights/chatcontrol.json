@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "InteractiveChat compatibility (#3682): default `Chat_Listener_Priority: HIGH-MODERN` runs ChatControl on Paper's AsyncChatEvent while InteractiveChat hooks legacy AsyncPlayerChatEvent \u2014 parallel pipelines cause `[item]` placeholders to be stripped. Fix: set `Chat_Listener_Priority: LOWEST` (drop `-MODERN`) in settings.yml, then full server restart (this key cannot be `/chc reload`ed).",
+    "related_skill": "chat-formatting",
+    "scope": "project",
+    "date": "2026-05-16",
+    "issue": 3682
   }
 ]
