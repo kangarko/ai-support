@@ -9,7 +9,7 @@
   },
   {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +30,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "`/chc internal remove <uuid>` replays the last 100 cached chat packets from SenderCache.lastChatPackets, which stores packets from ANY source, not only ChatControl formats. So Paper encoder errors during replay (e.g. \"Not a boolean: 0/1\" from show_item hovers on 1.21.x) often come from other plugins' cached messages, not the user's chat format. The only disable toggle is `Packets.Enabled: false` (also disables tab-complete vanish filtering); `Packets.Remove_Messages.Enabled` does not exist.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-16",
+    "issue": 3684
   }
 ]
