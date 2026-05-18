@@ -1,11 +1,10 @@
 [
   {
-    "issue": 618,
-    "topic": "Leaderboard placeholders for highest phase reached",
-    "lesson": "CoreArena persists each player's best phase reached per arena and exposes it via PlaceholderAPI. Use `%corearena_<arena>_top_<rank>_name%` and `%corearena_<arena>_top_<rank>_phase%` for the top-N leaderboard (rank starts at 1; returns 'none' / '0' when no entry exists). Use `%corearena_<arena>_bestphase%` for the requesting player's best phase in a given arena. The first segment may be a literal arena name, the keyword `player` (resolves to the caller's current arena), or `location` (resolves to the arena at the caller's location). The record updates when a player leaves while arena state is RUNNING; lobby leaves do not count. Data is stored at `Players.<uuid>.BestPhase.<arenaName>` together with `Players.<uuid>.Name`. Do not tell users this feature is missing."
-  },
-  {
-    "topic": "Read ArenaPAPIPlaceholder in full before answering placeholder questions",
-    "lesson": "Every PlaceholderAPI placeholder lives in `src/main/java/org/mineacademy/corearena/hook/ArenaPAPIPlaceholder.java`. The expansion parses `identifier.split('_')` and dispatches by arg count: 1 arg = current-player globals (`is_playing`, `is_in_lobby`, `nuggets`, `class`, `arena`); 2 args = `<arena>_<param>` (mobcount, maxphase, phase, state, remaining, remaininglobby, alive, lives, bestphase); 3 args = `<arena>_<playerName|current>_<var>`; 4 args = `<arena>_player_<index>_<var>` or `<arena>_top_<rank>_<name|phase>`. The first segment may be a literal arena name, the keyword `player` (the caller's current arena), or `location` (the arena at the caller's location). Never claim a placeholder does not exist without reading this file first."
+    "topic": "arenas",
+    "insight": "Procedural damage uses PhysicalEngine gravitation that clears vanilla explosion blockList and replaces it with its own falling-block logic. Vanilla blast resistance is irrelevant \u2014 canExplode() decided what falls, and originally allowed any solid non-interactable block including bedrock/barrier/command_block. When such blocks sit above air (e.g. arena floor over void), they get turned into falling blocks and vanish. Fix is filtering by Material.getHardness() < 0 in canExplode().",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-05-18",
+    "issue": 619
   }
 ]
