@@ -1,15 +1,7 @@
 [
   {
-    "topic": "channels",
-    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
-    "related_skill": "channels",
-    "scope": "project",
-    "date": "2026-02-15",
-    "issue": 3465
-  },
-  {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +22,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "messages",
+    "insight": "In `.rs` message files, `\\n` inside quoted strings is NOT converted to a newline (unlike YAML) \u2014 it prints literally. Use MiniMessage's `<newline>` tag, or unquoted continuation lines (each adds a real newline). Truly empty lines are stripped by RuleSetReader, so for a blank line between paragraphs use two `<newline><newline>` or a `<newline>` on its own continuation line.",
+    "related_skill": "messages",
+    "scope": "project",
+    "date": "2026-05-23",
+    "issue": 3709
   }
 ]
