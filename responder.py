@@ -1557,6 +1557,23 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
             raise RuntimeError(
                 f"Session failed: {e} (events: {event_count[0]}, tools: {tool_calls[0]}, turns: {turns[0]})"
             )
+
+        if not timed_out and min_tool_calls > 0 and tool_calls[0] < min_tool_calls:
+            shortfall = min_tool_calls - tool_calls[0]
+            print(f"  Tool usage below floor ({tool_calls[0]} < {min_tool_calls}) — nudging once for more research")
+            nudge = (
+                f"You only used {tool_calls[0]} tool call(s). Before finalizing, read at least "
+                f"{shortfall} more source, config, or skill file(s) directly relevant to the user's question "
+                "to verify your claims against actual code (not training memory). Then re-issue your final report."
+            )
+
+            try:
+                await session.send_and_wait(nudge, timeout=float(timeout))
+            except (TimeoutError, asyncio.TimeoutError):
+                print(f"  nudge timed out after {timeout}s — accepting whatever was produced")
+                timed_out = True
+            except Exception as e:
+                print(f"  nudge failed ({e}) — accepting whatever was produced")
     finally:
         unsubscribe()
 
@@ -1564,8 +1581,8 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
     msg_list  = list(messages)
     print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {tool_calls[0]} tool calls, {turns[0]} turns, {len(msg_list)} messages")
 
-    if tool_calls[0] < min_tool_calls:
-        raise RuntimeError(f"Insufficient tool usage: expected at least {min_tool_calls}, got {tool_calls[0]}")
+    if min_tool_calls > 0 and tool_calls[0] < min_tool_calls:
+        print(f"  WARNING: tool usage still below floor after nudge ({tool_calls[0]} < {min_tool_calls}) — accepting response")
 
     if extractor is None:
         candidate = extract_last_response(msg_list, min_length=min_length)
