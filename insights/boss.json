@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Boss 6.x lazily captures vanilla attribute defaults on first spawn of each EntityType (for Folia compatibility). After a server restart, the Settings \u2192 Attributes menu shows empty for any non-PLAYER boss whose EntityType has not spawned yet. Saved overrides in the yaml `Attributes:` section are NOT lost and still apply on spawn. Workaround: run `/boss spawn <name>` once, then reopen the menu. See Boss.initDefaultAttributes() and captureDefaultAttributes() around lines 870-930.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-03",
+    "issue": 1514
   }
 ]
