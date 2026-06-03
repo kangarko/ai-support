@@ -1,15 +1,7 @@
 [
   {
-    "topic": "channels",
-    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
-    "related_skill": "channels",
-    "scope": "project",
-    "date": "2026-02-15",
-    "issue": 3465
-  },
-  {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +22,21 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "rules-engine",
+    "insight": "Mystery console spam from chat (e.g. repeating `[Async Chat Thread/INFO]: <word>`) is typically a user-authored rule with `then log <word>`. The `then log` operator (Operator.java:340 + 1038) calls CommonCore.log on the calling thread, so chat rules print from the async chat thread. Grep the user's `rules/` folder for `then log <observed-word>` and remove that line.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-03",
+    "issue": 3734
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "`Apply_On: \\n- []` (a list whose single element is `[]`) throws `MissingEnumException: Type value '[]' is not found` on reload, because deserializer tries to parse `[]` as a Type enum. Correct empty form is inline `Apply_On: []`. Valid Type values: anvil, book, chat, me, nick, prefix, private_message, say, sign, suffix.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-03",
+    "issue": 3734
   }
 ]
