@@ -1,15 +1,7 @@
 [
   {
-    "topic": "channels",
-    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
-    "related_skill": "channels",
-    "scope": "project",
-    "date": "2026-02-15",
-    "issue": 3465
-  },
-  {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +22,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "chat-formatting",
+    "insight": "When Nexo glyphs render as `\\:shortcode:` (literal backslash) in chat but work in `/msg` and `/nexo glyphinfo`, the cause is the `permission:` field in the glyph's YAML. Nexo escapes the shortcode for players lacking that permission, and ChatControl's NexoHook.canSee() (HookManager.java ~line 4640) also skips glyphs the player can't see. Fix: grant the node (e.g. `emoji_expansion.*`) or remove the `permission:` line from the glyph YAML.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-06",
+    "issue": 3737
   }
 ]
