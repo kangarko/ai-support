@@ -1,15 +1,7 @@
 [
   {
-    "topic": "channels",
-    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
-    "related_skill": "channels",
-    "scope": "project",
-    "date": "2026-02-15",
-    "issue": 3465
-  },
-  {
     "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
+    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text \u2014 it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
     "related_skill": "chat-formatting",
     "scope": "project",
     "date": "2026-03-16",
@@ -30,5 +22,13 @@
     "scope": "project",
     "date": "2026-03-16",
     "issue": 3510
+  },
+  {
+    "topic": "channels",
+    "insight": "With `Channels.Join_Read_Old: true` (default), `/channel leave` silently converts to \"switch to read mode\" if the player has read perm and a free read slot, and pre-PR #3741 did NOT call `markLeftChannel`. On next login, `Channel.autoJoin` then upgrades them read\u2192write again (Channel.java:1091-1094) via `.autojoin.<channel>.write`, which users report as \"auto-rejoined after leaving\". Workaround on old builds: set `Join_Read_Old: false`.",
+    "related_skill": "channels",
+    "scope": "project",
+    "date": "2026-06-08",
+    "issue": 3741
   }
 ]
