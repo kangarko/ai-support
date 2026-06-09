@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "skills-drops",
+    "insight": "Paper kick \"out of order confirmation packet (-N != -N-1)\" during Boss's Teleport/Confuse skills is an anticheat conflict (e.g. Vulcan), not a Boss bug. Boss uses standard Bukkit `Entity#teleport(Location)` with cause `PLUGIN`; the anticheat issues its own corrective teleport in the same tick, interleaving Paper's teleport ids. Fix must come from the anticheat side (grace window on `PlayerTeleportEvent` with cause == PLUGIN). Workaround: disable the Teleport skill.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-09",
+    "issue": 1517
   }
 ]
