@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "In Boss <= 6.0.6, manually editing files in bosses/*.yml and running /boss reload silently reverts the edits: BossPlugin.onPluginPreReload() serializes every in-memory Boss back to disk before any file is re-read, and onPluginReload() never re-reads boss files. Workaround until patched: stop the server, edit the YAML, start it back up. Fix: drop the pre-reload save loop and call Boss.loadBosses() in onPluginReload() (menu setters already persist immediately, so removing the pre-save is safe).",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-10",
+    "issue": 1523
   }
 ]
