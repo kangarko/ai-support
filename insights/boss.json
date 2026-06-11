@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Setting a boss alias to \"hidden\" only suppresses the vanilla Bukkit custom-name. For Citizens-managed bosses (Citizens.Enabled: true), Citizens controls the nameplate via its own NPC.Metadata.NAMEPLATE_VISIBLE flag and overwrites Bukkit's custom-name on every packet refresh \u2014 so the nameplate stays visible unless Boss also toggles that metadata. Fixed by setting NAMEPLATE_VISIBLE=false when alias equals \"hidden\" in BossAI.applyCitizensSettings.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-11",
+    "issue": 1524
   }
 ]
