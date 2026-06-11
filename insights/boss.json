@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "spawning",
+    "insight": "Users frequently confuse Boss Regions with Boss Locations in REGION_ENTER spawn rules. Regions (`/boss region`) are the trigger area; Locations (`/boss location` or `/boss loc tool`) are the actual spawn points. The \"Select Locations\" menu in a spawn rule shows 0/0 until at least one Boss Location exists, even if regions are defined. Both are required for REGION_ENTER to work.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-11",
+    "issue": 1522
   }
 ]
