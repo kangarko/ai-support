@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Spider wall-climbing cannot be disabled via Bukkit/Paper API \u2014 it's hardcoded in NMS Spider.move(). Mob jumping for non-horse entities is also NMS-controlled (JUMP_STRENGTH attribute only affects horses/llamas); Paper's EntityJumpEvent is cancellable but doesn't cover spiders. Boss has no Prevent_Climbing/Prevent_Jumping settings, and NO_AI freezes the entity entirely rather than selectively blocking movement abilities.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-11",
+    "issue": 1525
   }
 ]
