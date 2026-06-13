@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "commands",
+    "insight": "Death commands run only for the killer ({player}). No radius option exists, and skills like Commands_Nearby don't fire on death (TaskBehavior periodic only). Workaround: console death command with `execute positioned {boss_x} {boss_y} {boss_z} as @a[distance=..N] run <cmd>` \u2014 boss coord placeholders resolve to the death location.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-13",
+    "issue": 1531
   }
 ]
