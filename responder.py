@@ -44,10 +44,10 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
-MODEL                 = "claude-opus-4.7"
+MODEL                 = "claude-opus-4.8"
 REASONING_EFFORT      = "xhigh"
 AUTO_REPORTED_CRASH   = "Auto-reported crash"
-REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root."
+REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root. Learn everything about the entire flow of the bug or feature or question in the codebase first."
 OPERATOR_DIRECTIVES_FILE = "operator_directives.md"
 
 EXCLUDED_BUILTIN_TOOLS = [
