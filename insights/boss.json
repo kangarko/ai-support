@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "general",
+    "insight": "The kangarko/Boss-Src GitHub PR links posted as \"draft fix proposed\" point to the private source repo, so users cannot open them and they are NOT downloadable jars. Fixes ship as normal updates on BuiltByBit (https://builtbybit.com/resources/21619); never offer to send jars via Discord or build from source.",
+    "related_skill": "",
+    "scope": "project",
+    "date": "2026-06-29",
+    "issue": 1538
+  },
+  {
+    "topic": "bosses",
+    "insight": "Console spam of `NoSuchMethodError: org.bukkit.entity.AbstractCubeMob org.bukkit.event.entity.SlimeSplitEvent.getEntity()` from EntityListener.onSlimeSplit means Boss was compiled against newer Paper (getEntity returns AbstractCubeMob) while the server exposes the older getEntity()\u2192Slime signature; it fires on every slime/magma split. Fix is calling the version-stable parent signature; older Boss builds avoid it.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-06-29",
+    "issue": 1538
   }
 ]
