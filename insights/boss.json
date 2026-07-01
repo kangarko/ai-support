@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "skills-drops",
+    "insight": "Boss has no native MMOCore/MMOItems API hook (not in plugin.yml softdepend, HookManager, or anywhere in source). But MMO rewards still work two ways without MythicMobs: drag any MMOItems item straight into the Drops menu (stored as a real NBT ItemStack, drops on death), or run MMO give commands from the boss's death commands (console, or per top-damager with {killer}/{player}/{damage}/{order}).",
+    "related_skill": "skills-drops",
+    "scope": "project",
+    "date": "2026-07-01",
+    "issue": 1540
   }
 ]
