@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from copilot import CopilotClient, SubprocessConfig, define_tool
+from copilot import CopilotClient, define_tool
 from copilot.session import PermissionHandler
 from response_validation import (
     PUBLIC_RESPONSE_TAG,
@@ -44,10 +44,11 @@ CONVERSATION_FILE     = "conversation.json"
 MAX_CONVERSATION_SIZE = 500_000
 INSIGHT_EXPIRY_DAYS   = 90
 MAX_INSIGHTS          = 50
-MODEL                 = "claude-opus-4.8"
-REASONING_EFFORT      = "xhigh"
+MODEL                 = "claude-fable-5"
+REASONING_EFFORT      = "max"
+CONTEXT_TIER          = "long_context"
 AUTO_REPORTED_CRASH   = "Auto-reported crash"
-REQUIRED_PROMPT_TEXT  = "Ultrathink edge cases and consequences. Ensure data correctness and prevent confabulation by checking assumptions. Implement it in the best, most proper, minimalistic, clean, DRY way. Come up with a strategy that guarantees zero issues because it solves the problems from their root. Learn everything about the entire flow of the bug or feature or question in the codebase first."
+REQUIRED_PROMPT_TEXT  = "Goal: resolve the user's issue at its root with the smallest correct change, verified against the actual codebase. Every claim about code, configs, or behavior must come from source files or tool results read this session, never from memory. Boundaries: change only what the fix requires, keep it minimal, clean, and DRY, and do not refactor unrelated code. Understand the entire flow of the bug, feature, or question in the codebase before writing code, and account for edge cases, side effects and consequences. When you have enough information to act, act. Do not re-derive facts already established in the conversation. Before finishing, verify your work: re-read your patches, and audit any progress or completion claims against actual tool results."
 OPERATOR_DIRECTIVES_FILE = "operator_directives.md"
 
 EXCLUDED_BUILTIN_TOOLS = [
@@ -1499,12 +1500,13 @@ def read_working_notes(params: ReadNotesParams) -> str:
     return path.read_text()
 
 
-async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10, min_tool_calls=0):
+async def run_agent_session(client, model, system_prompt, user_prompt, tools, timeout=3600, min_length=10, min_tool_calls=0, reasoning_effort=REASONING_EFFORT):
     session_kwargs = {
         "on_permission_request": PermissionHandler.approve_all,
         "model": model,
         "streaming": True,
-        "reasoning_effort": REASONING_EFFORT,
+        "reasoning_effort": reasoning_effort,
+        "context_tier": CONTEXT_TIER,
         "system_message": build_system_message(system_prompt),
         "tools": tools,
         "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
@@ -1578,7 +1580,7 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
     finally:
         unsubscribe()
 
-    messages  = await session.get_messages()
+    messages  = await session.get_events()
     msg_list  = list(messages)
     print(f"  send_prompt {'partial' if timed_out else 'complete'} — {event_count[0]} events, {tool_calls[0]} tool calls, {turns[0]} turns, {len(msg_list)} messages")
 
@@ -1813,7 +1815,7 @@ Respond with exactly one word: IMPLEMENT, DECLINED, or ANSWER_ONLY"""
         result = await run_agent_session(
             client, model,
             "You are a triage classifier. Respond with exactly one word.",
-            prompt, [], timeout=30, min_length=1,
+            prompt, [], timeout=90, min_length=1, reasoning_effort="low",
         )
 
         answer = result.strip().upper()
@@ -1851,7 +1853,7 @@ Respond with exactly NO if:
 Respond with only YES or NO."""
 
     try:
-        result = await run_agent_session(client, model, "You are a triage classifier. Respond with only YES or NO.", prompt, [], timeout=30, min_length=1)
+        result = await run_agent_session(client, model, "You are a triage classifier. Respond with only YES or NO.", prompt, [], timeout=90, min_length=1, reasoning_effort="low")
         answer = result.strip().upper()
         print(f"Triage — model says: {answer}")
         return answer.startswith("YES")
@@ -1905,7 +1907,7 @@ Return a compact report with exactly these sections:
 
     return await run_agent_session(
         client, model, system_prompt, prompt,
-        study_tools, timeout=900, min_length=200, min_tool_calls=4,
+        study_tools, timeout=1800, min_length=200, min_tool_calls=4,
     )
 
 
@@ -1943,7 +1945,7 @@ Return findings as a bullet list."""
     try:
         result = await run_agent_session(
             client, model, system_prompt, user_prompt,
-            research_tools, timeout=120, min_length=10,
+            research_tools, timeout=300, min_length=10,
         )
 
         return result
@@ -2071,9 +2073,7 @@ async def run():
     ]
     model = MODEL
 
-    client = CopilotClient(SubprocessConfig(
-        github_token=token,
-    ))
+    client = CopilotClient(github_token=token)
     await client.start()
 
     try:
@@ -2186,6 +2186,7 @@ Use the Mandatory Codebase Study as verified context. If you need more detail, r
             "model": model,
             "streaming": True,
             "reasoning_effort": REASONING_EFFORT,
+            "context_tier": CONTEXT_TIER,
             "system_message": build_system_message(system_prompt),
             "tools": all_tools,
             "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
@@ -2243,7 +2244,7 @@ Read each changed file and its surrounding code. Check for:
 If you find problems, fix them with patch_codebase_file, batch_patch_codebase_files, or write_codebase_file. If everything looks correct, respond with "LGTM"."""
 
                     try:
-                        review_result = await send_prompt(session, review_prompt, timeout=600)
+                        review_result = await send_prompt(session, review_prompt, timeout=900)
                         print(f"Phase 3 \u2014 complete: {review_result[:200]}")
                     except Exception as e:
                         print(f"Warning: Phase 3 self-review failed \u2014 {e}")
@@ -2282,7 +2283,7 @@ Your goal: identify NEW knowledge that wasn't already in the skill files but was
 Issue #{issue_number}: {title}"""
 
                 try:
-                    insight_result = await send_prompt(session, insight_prompt, timeout=180, min_length=1)
+                    insight_result = await send_prompt(session, insight_prompt, timeout=300, min_length=1)
                     print(f"Phase 4 \u2014 complete: {insight_result[:200]}")
                 except Exception as e:
                     print(f"Warning: Phase 4 insight extraction failed \u2014 {e}")
