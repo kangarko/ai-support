@@ -131,12 +131,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r ai-support/requirements.txt
 
-      - name: Fix bundled CLI permissions
-        run: |
-          CLI_BIN="$(python -c 'import copilot, os; print(os.path.join(os.path.dirname(copilot.__file__), "bin", "copilot"))')" 
-          chmod +x "$CLI_BIN"
-          echo "Using bundled CLI: $CLI_BIN ($(<"$(dirname "$CLI_BIN")/VERSION"))"
-
       - name: Analyze issue and generate response
         env:
           PYTHONUNBUFFERED: "1"
