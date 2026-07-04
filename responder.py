@@ -1521,6 +1521,10 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         await session.disconnect()
 
 
+class EmptyOutputError(RuntimeError):
+    pass
+
+
 async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=None, min_tool_calls=0):
     event_count = [0]
     tool_calls = [0]
@@ -1594,9 +1598,13 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
         candidate = extractor(msg_list)
 
     if not candidate:
+        for unmatched in list(_iter_assistant_texts(msg_list))[:3]:
+            print(f"  Unmatched assistant output: {unmatched[:500]!r}")
+
         if timed_out:
             raise RuntimeError(f"Session timed out after {timeout}s with no usable response (events: {event_count[0]})")
-        raise RuntimeError(f"Empty output. messages={len(msg_list)}")
+
+        raise EmptyOutputError(f"Empty output. messages={len(msg_list)}")
 
     if timed_out:
         print(f"  Recovered response ({len(candidate)} chars) despite timeout")
@@ -1605,7 +1613,19 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
 
 
 async def send_public_response_prompt(session, prompt, timeout=1800):
-    response = await send_prompt(session, prompt, timeout=timeout, min_length=1, extractor=extract_last_public_response)
+    try:
+        response = await send_prompt(session, prompt, timeout=timeout, min_length=1, extractor=extract_last_public_response)
+    except EmptyOutputError as e:
+        print(f"  Public reply extraction failed ({e}) — sending one corrective nudge")
+
+        nudge = (
+            f"Your previous message did not contain a valid public reply. Re-send your complete final reply now, "
+            f"wrapped exactly in <{PUBLIC_RESPONSE_TAG}>...</{PUBLIC_RESPONSE_TAG}> tags with nothing before or after them. "
+            "If no public reply is needed, respond with exactly SKIP."
+        )
+
+        response = await send_prompt(session, nudge, timeout=timeout, min_length=1, extractor=extract_last_public_response)
+
     return finalize_public_response_text(response)
 
 

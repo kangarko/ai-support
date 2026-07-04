@@ -4,7 +4,7 @@ import re
 PUBLIC_RESPONSE_TAG = "public_response"
 
 PUBLIC_RESPONSE_PATTERN = re.compile(
-    rf"^\s*<{PUBLIC_RESPONSE_TAG}>\s*(.*?)\s*</{PUBLIC_RESPONSE_TAG}>\s*$",
+    rf"<{PUBLIC_RESPONSE_TAG}>\s*(.*?)\s*</{PUBLIC_RESPONSE_TAG}>",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -45,16 +45,16 @@ def is_skip_response(text):
 
 
 def has_complete_public_response(text):
-    return PUBLIC_RESPONSE_PATTERN.match((text or "").strip()) is not None
+    return PUBLIC_RESPONSE_PATTERN.search(text or "") is not None
 
 
 def extract_exact_public_response_text(text):
-    match = PUBLIC_RESPONSE_PATTERN.match((text or "").strip())
+    matches = PUBLIC_RESPONSE_PATTERN.findall(text or "")
 
-    if not match:
+    if not matches:
         return ""
 
-    return match.group(1).strip()
+    return matches[-1].strip()
 
 
 def find_public_response_validation_error(text):
