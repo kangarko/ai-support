@@ -259,7 +259,7 @@ jobs:
       - name: Append PR link to response
         if: steps.fix_pr.outputs.pr_url && hashFiles('response.md') != ''
         run: |
-          printf '\n\n---\n:memo: **A draft fix has been proposed:** %s' "${{ steps.fix_pr.outputs.pr_url }}" >> response.md
+          printf '\n\n**I proposed a fix here:** %s' "${{ steps.fix_pr.outputs.pr_url }}" >> response.md
 
       - name: Append Foundation PR link to response
         if: steps.foundation_fix_pr.outputs.pr_url && hashFiles('response.md') != ''
