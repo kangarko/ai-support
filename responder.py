@@ -54,7 +54,14 @@ OPERATOR_DIRECTIVES_FILE = "operator_directives.md"
 EXCLUDED_BUILTIN_TOOLS = [
     "bash", "shell", "write", "create",
     "read", "grep", "glob", "ls",
+    "task", "sql", "session_store_sql",
+    "list_bash", "read_bash", "stop_bash",
 ]
+
+FALLBACK_RESPONSE = (
+    "I was not able to put together a reliable answer for this one automatically, "
+    "so I am flagging it for the maintainer to review personally. Sorry for the wait!"
+)
 
 github_app_token = ""
 repo_full_name   = ""
@@ -1601,13 +1608,17 @@ async def send_prompt(session, prompt, timeout=1800, min_length=10, extractor=No
         candidate = extractor(msg_list)
 
     if not candidate:
-        for unmatched in list(_iter_assistant_texts(msg_list))[:3]:
+        unmatched_texts = list(_iter_assistant_texts(msg_list))[:3]
+
+        for unmatched in unmatched_texts:
             print(f"  Unmatched assistant output: {unmatched[:500]!r}")
 
         if timed_out:
             raise RuntimeError(f"Session timed out after {timeout}s with no usable response (events: {event_count[0]})")
 
-        raise EmptyOutputError(f"Empty output. messages={len(msg_list)}")
+        last_output = unmatched_texts[0][:200] if unmatched_texts else ""
+
+        raise EmptyOutputError(f"Empty output. messages={len(msg_list)}, last_output={last_output!r}")
 
     if timed_out:
         print(f"  Recovered response ({len(candidate)} chars) despite timeout")
@@ -1619,6 +1630,10 @@ async def send_public_response_prompt(session, prompt, timeout=1800):
     try:
         response = await send_prompt(session, prompt, timeout=timeout, min_length=1, extractor=extract_last_public_response)
     except EmptyOutputError as e:
+        if "content filter" in str(e).lower():
+            print(f"  Public reply blocked by content filtering ({e}) — nudging the same session is futile, raising for a fresh-session retry")
+            raise
+
         print(f"  Public reply extraction failed ({e}) — sending one corrective nudge")
 
         nudge = (
@@ -1929,10 +1944,18 @@ Return a compact report with exactly these sections:
 7. Recommended answer facts
 """
 
-    return await run_agent_session(
+    study = await run_agent_session(
         client, model, system_prompt, prompt,
         study_tools, timeout=1800, min_length=200, min_tool_calls=4,
     )
+
+    if "verified facts" not in study.lower():
+        print(f"Phase 1 — study output lacks the mandated report sections, discarding {len(study)} chars so it cannot poison the response prompt")
+
+        return ("The codebase study phase failed and produced no verified facts. Treat nothing as pre-verified: "
+                "read every source, config, or skill file behind any claim you make before answering.")
+
+    return study
 
 
 async def run_research_subagent(client, model, class_not_found, known_deps):
@@ -2225,7 +2248,19 @@ Use the Mandatory Codebase Study as verified context. If you need more detail, r
 
         try:
             print("Phase 2 \u2014 generating response")
-            text = await send_public_response_prompt(session, user_prompt)
+
+            try:
+                text = await send_public_response_prompt(session, user_prompt)
+            except EmptyOutputError as e:
+                print(f"Phase 2 \u2014 response empty or blocked ({e}), retrying once in a fresh session")
+                await session.disconnect()
+                session = await client.create_session(**session_kwargs)
+
+                try:
+                    text = await send_public_response_prompt(session, user_prompt)
+                except EmptyOutputError as retry_error:
+                    print(f"Phase 2 \u2014 fresh-session retry failed ({retry_error}), posting fallback notice instead of failing silently")
+                    text = FALLBACK_RESPONSE
 
             print(f"Phase 2 \u2014 complete: {text[:200]}")
 
