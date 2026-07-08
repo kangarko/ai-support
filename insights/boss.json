@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "spawning",
+    "insight": "Issue #1544 added a 6th spawn rule type KILL_COUNT (\"After A Kill Goal\", PR pending review): it counts player kills of selected Boss-plugin mobs into a shared counter (Kill_Goal/Kill_Count in spawnrules/<name>.yml) and spawns the rule's Bosses at its Boss Locations when the goal is reached, then resets. The counter is global, not per player; actionbar progress uses Progress_Format with {boss}, {count}, {goal}, {remaining} variables.",
+    "related_skill": "spawning",
+    "scope": "project",
+    "date": "2026-07-08",
+    "issue": 1544
   }
 ]
