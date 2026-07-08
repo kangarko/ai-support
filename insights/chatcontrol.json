@@ -1,34 +1,18 @@
 [
   {
-    "topic": "channels",
-    "insight": "ChatControl's Discord integration requires the DiscordSRV plugin. Users must disable DiscordSRV's built-in chat relay by setting `DiscordChatChannelMinecraftToDiscord: false` in DiscordSRV's `config.yml`, otherwise messages get duplicated. ChatControl checks this on startup and logs a warning if it's still enabled (see ChatControl.java line ~247).",
-    "related_skill": "channels",
-    "scope": "project",
-    "date": "2026-02-15",
-    "issue": 3465
-  },
-  {
-    "topic": "image-in-format",
-    "insight": "Users commonly place `/chc a image <file> <height> <message>` inside a format part's `Message:` key expecting it to render an image. This prints the command text literally because `Message:` only displays text — it never executes commands. The correct approach is to use `Image_File`, `Image_Head`, or `Image_Url` keys on the format part. `/chc a image` is exclusively for one-time broadcast announcements via console or in-game command.",
-    "related_skill": "chat-formatting",
-    "scope": "project",
-    "date": "2026-03-16",
-    "issue": 3508
-  },
-  {
-    "topic": "folia-automode-no-packetevents",
-    "insight": "Auto_Mode on Folia does NOT require PacketEvents. Auto_Mode uses dispatchCommand('/tell ...') which flows through Foundation's BukkitPlayer.performPlayerCommand0(), which on Folia uses player.getScheduler().run() for correct entity-thread scheduling. The Folia disable check in Settings.java was outdated and can be removed entirely. The PacketEvents-based conversation fix in BukkitPacketListener is for a completely different feature (Bukkit's Conversation API with player.isConversing()/acceptConversationInput()), NOT for Auto_Mode.",
+    "topic": "private-messaging",
+    "insight": "The AFK warning in /tell (lang key command-tell-afk-warning, PrivateMessage.java) is rendered with Variables.builder(sender.getAudience()), so any PAPI placeholder a user adds to it resolves against the message SENDER, not the AFK receiver. Receiver-context PAPI placeholders (e.g. %essentials_afk_reason%) return the sender's value locally and can never work for cross-server receivers, who have no local Player object. Receiver data in PMs must come from NetworkDirectory.Entry fields, not PAPI.",
     "related_skill": "private-messaging",
     "scope": "project",
-    "date": "2026-03-16",
-    "issue": 3511
+    "date": "2026-07-08",
+    "issue": 3793
   },
   {
-    "topic": "stop-on-first-match-fallback-duplicate",
-    "insight": "When multiple message groups use 'require sender perm' for rank-based messages (e.g. premium, vip, default) and a player has inherited permissions matching all groups, Stop_On_First_Match correctly prevents duplicates in the main player loop. However, the sender-fallback path in PlayerMessage.filter() (line ~849: 'if !pickedMessage && wrappedSender != null') fires per group and did NOT check messageReceivers, causing the sender to receive duplicate messages from each matching group. PR #3513 fixes this by adding a messageReceivers + Stop_On_First_Match check to the fallback condition.",
-    "related_skill": "messages",
+    "topic": "proxy-sync",
+    "insight": "Per-player state shown cross-server (AFK, vanish, nick) must live as a field on NetworkDirectory.Entry wired into toMap/fromMap/applyPatch and be populated in ProxyChat.buildEntryMap, since the proxy re-serializes entries via Entry.toMap() and drops anything else. Fields that reset on server switch (like Essentials AFK state) must always be emitted in Entry.toMap(), or other backends keep stale values after DATABASE_READY.",
+    "related_skill": "proxy-sync",
     "scope": "project",
-    "date": "2026-03-16",
-    "issue": 3510
+    "date": "2026-07-08",
+    "issue": 3793
   }
 ]
