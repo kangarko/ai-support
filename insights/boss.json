@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "skills-drops",
+    "insight": "Items placed in Boss drop menus are saved as exact ItemStack snapshots, so custom item plugins with random stats (e.g. MMOItems) get their stats frozen at the moment of configuration. Fix: reward via a death command instead, e.g. `mmoitems give <TYPE> <ID> {killer}`, which regenerates the item fresh with rerolled stats on every kill; each death command also has its own in-game Run Chance (0-100%) for chance-based rewards, so no code change is needed for \"X% chance\" requests.",
+    "related_skill": "skills-drops",
+    "scope": "project",
+    "date": "2026-07-08",
+    "issue": 1545
+  },
+  {
+    "topic": "commands",
+    "insight": "Top damager commands (Drops.Player_Commands) are NOT limited to one command: Boss splits the stored string on `|` (Boss.getPlayerDropsCommands), so users can chain multiple commands per damage rank. Inside these commands `{killer}` resolves to the ranked damager receiving the reward (not the actual killer), and `{order}` plus `{damage}` are also replaced per recipient.",
+    "related_skill": "commands",
+    "scope": "project",
+    "date": "2026-07-08",
+    "issue": 1545
   }
 ]
