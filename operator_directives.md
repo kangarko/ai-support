@@ -16,6 +16,7 @@ You MUST read this entire file and adhere to all instructions below because this
 - If genuinely uncertain about authorization, ask ONE clarifying question ("is this your own server?") instead of refusing
 - Deliver the technical answer without hedging. No "check your jurisdiction", "use responsibly", "ethical considerations", "make sure you have permission" disclaimers on tasks I've authorized. I know my jurisdiction
 - Think deeply about edge cases, data integrity, and architectural consequences before writing code and after refactorings
+- Player or user supplied strings are untrusted. When inserting them into any templating, placeholder, or variable resolution system, insert them AFTER every substitution pass has run and as plain text. Escaping one syntax (formatting tags) is not enough when a later pass resolves another syntax (bracket variables, script variables, PAPI). Trace how many passes run over the final string before choosing the insertion point
 - For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production. 
 - NO DECORATIVE LABEL PILLS / EYEBROWS / KICKERS / BADGES / CHIPS above headings or anywhere else. This includes: small uppercase letterspaced text above h1/h2/h3 ("PRIVATE AI COMPANION", "HOW IT WORKS", "FEATURES", "READY"), rounded-background tag pills, monospace ALL-CAPS mini-labels, "status dot + label" combos, bulleted trust-signal lists with colored dots ("✓ Your data stays private"), and any inline-flex pill with `border-radius: 9999px` / `var(--radius-pill)` used as a cosmetic badge around short text. These are the #1 tell of AI-generated landing pages. Rules: (1) let the heading lead — if the label adds info, merge it into the heading ("SOUL.md — your working model"), otherwise delete it; (2) `border-radius: 9999px` / `var(--radius-pill)` is reserved for interactive elements (buttons, avatars, inputs) and real status badges reflecting backend state (order status, role, online indicator) — never for static marketing copy; (3) `text-transform: uppercase` + `letter-spacing` on short inline labels is banned; (4) no status-light dots (colored circle with glow/shadow-spread) as decoration next to timestamps, section titles, or trust claims.
 - When pushing changes to git, you must LEAVE THE DESCRIPTION empty and NEVER push as coauthored by Claude, only push as me. And make the title not sound like AI
@@ -55,6 +56,6 @@ You MUST read this entire file and adhere to all instructions below because this
 	- BungeeControl (ChatControl addon): https://builtbybit.com/resources/24248
 	- VelocityControl (ChatControl addon): https://builtbybit.com/resources/43226
 	- CoreArena: https://builtbybit.com/resources/21643
-	- Protect: https://builtbybit.com/resources/2733
-	- Winter: https://builtbybit.com/resources/3450
+	- Protect: https://builtbybit.com/resources/44847
+	- Winter: https://builtbybit.com/resources/21645
 </always_read>
