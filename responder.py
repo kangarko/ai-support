@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from copilot import CopilotClient, define_tool
+from copilot import CopilotClient, ToolSet, define_tool
 from copilot.session import PermissionHandler
 from response_validation import (
     PUBLIC_RESPONSE_TAG,
@@ -51,16 +51,16 @@ AUTO_REPORTED_CRASH   = "Auto-reported crash"
 REQUIRED_PROMPT_TEXT  = "Goal: resolve the user's issue at its root with the smallest correct change, verified against the actual codebase. Every claim about code, configs, or behavior must come from source files or tool results read this session, never from memory. Boundaries: change only what the fix requires, keep it minimal, clean, and DRY, and do not refactor unrelated code. Understand the entire flow of the bug, feature, or question in the codebase before writing code, and account for edge cases, side effects and consequences. When you have enough information to act, act. Do not re-derive facts already established in the conversation. Before finishing, verify your work: re-read your patches, and audit any progress or completion claims against actual tool results."
 OPERATOR_DIRECTIVES_FILE = "operator_directives.md"
 
-EXCLUDED_BUILTIN_TOOLS = [
-    "bash", "shell", "write", "create",
-    "read", "grep", "glob", "ls",
-    "task", "sql", "session_store_sql",
-    "list_bash", "read_bash", "stop_bash",
-]
+CUSTOM_TOOLS_ONLY = ToolSet().add_custom("*")
 
 FALLBACK_RESPONSE = (
     "I was not able to put together a reliable answer for this one automatically, "
-    "so I am flagging it for the maintainer to review personally. Sorry for the wait!"
+    "so I am leaving it for the maintainer to look at personally. Sorry for the wait!"
+)
+
+STUDY_FAILED_NOTICE = (
+    "The codebase study phase failed and produced no verified facts. Treat nothing as pre-verified: "
+    "read every source, config, or skill file behind any claim you make before answering."
 )
 
 github_app_token = ""
@@ -1520,7 +1520,7 @@ async def run_agent_session(client, model, system_prompt, user_prompt, tools, ti
         "context_tier": CONTEXT_TIER,
         "system_message": build_system_message(system_prompt),
         "tools": tools,
-        "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+        "available_tools": CUSTOM_TOOLS_ONLY,
     }
 
     session = await client.create_session(**session_kwargs)
@@ -1630,7 +1630,7 @@ async def send_public_response_prompt(session, prompt, timeout=1800):
     try:
         response = await send_prompt(session, prompt, timeout=timeout, min_length=1, extractor=extract_last_public_response)
     except EmptyOutputError as e:
-        if "content filter" in str(e).lower():
+        if "blocked by content filtering" in str(e).lower():
             print(f"  Public reply blocked by content filtering ({e}) — nudging the same session is futile, raising for a fresh-session retry")
             raise
 
@@ -1734,6 +1734,25 @@ def audit_claims_vs_diff(response_text, diff_text):
         return response_text + warning
 
     return response_text
+
+
+def discard_pending_changes():
+    """Revert all codebase edits from a failed response attempt so a retry or a
+    fallback comment never ships half-applied patches into a draft PR."""
+
+    for repo_dir in [MAIN_DIR, FOUNDATION_DIR]:
+        if not Path(repo_dir).is_dir():
+            continue
+
+        for args in (["reset", "--hard"], ["clean", "-fd"]):
+            result = subprocess.run(["git", "-C", repo_dir] + args, capture_output=True, text=True, timeout=30)
+
+            if result.returncode != 0:
+                print(f"Warning: git {' '.join(args)} in {repo_dir} failed: {result.stderr.strip()}")
+
+    if written_files:
+        print(f"Discarded {len(written_files)} pending file change(s) from the failed attempt")
+        written_files.clear()
 
 
 def get_git_diff():
@@ -1944,16 +1963,20 @@ Return a compact report with exactly these sections:
 7. Recommended answer facts
 """
 
-    study = await run_agent_session(
-        client, model, system_prompt, prompt,
-        study_tools, timeout=1800, min_length=200, min_tool_calls=4,
-    )
+    try:
+        study = await run_agent_session(
+            client, model, system_prompt, prompt,
+            study_tools, timeout=1800, min_length=200, min_tool_calls=4,
+        )
+    except (EmptyOutputError, RuntimeError) as e:
+        print(f"Phase 1 — study session failed ({e}), continuing without a study")
 
-    if "verified facts" not in study.lower():
+        return STUDY_FAILED_NOTICE
+
+    if not re.search(r"(?im)^\s*(?:#+\s*|\d+\.\s*)?verified facts", study):
         print(f"Phase 1 — study output lacks the mandated report sections, discarding {len(study)} chars so it cannot poison the response prompt")
 
-        return ("The codebase study phase failed and produced no verified facts. Treat nothing as pre-verified: "
-                "read every source, config, or skill file behind any claim you make before answering.")
+        return STUDY_FAILED_NOTICE
 
     return study
 
@@ -2236,7 +2259,7 @@ Use the Mandatory Codebase Study as verified context. If you need more detail, r
             "context_tier": CONTEXT_TIER,
             "system_message": build_system_message(system_prompt),
             "tools": all_tools,
-            "excluded_tools": EXCLUDED_BUILTIN_TOOLS,
+            "available_tools": CUSTOM_TOOLS_ONLY,
             "infinite_sessions": {
                 "enabled": True,
                 "background_compaction_threshold": 0.80,
@@ -2251,16 +2274,22 @@ Use the Mandatory Codebase Study as verified context. If you need more detail, r
 
             try:
                 text = await send_public_response_prompt(session, user_prompt)
-            except EmptyOutputError as e:
-                print(f"Phase 2 \u2014 response empty or blocked ({e}), retrying once in a fresh session")
+            except (EmptyOutputError, ValueError) as e:
+                print(f"Phase 2 \u2014 response empty, invalid or blocked ({e}), retrying once in a fresh session")
+                discard_pending_changes()
                 await session.disconnect()
                 session = await client.create_session(**session_kwargs)
 
                 try:
                     text = await send_public_response_prompt(session, user_prompt)
-                except EmptyOutputError as retry_error:
+                except (EmptyOutputError, ValueError, RuntimeError) as retry_error:
                     print(f"Phase 2 \u2014 fresh-session retry failed ({retry_error}), posting fallback notice instead of failing silently")
+                    discard_pending_changes()
                     text = FALLBACK_RESPONSE
+            except RuntimeError as e:
+                print(f"Phase 2 \u2014 session failed terminally ({e}), posting fallback notice instead of failing silently")
+                discard_pending_changes()
+                text = FALLBACK_RESPONSE
 
             print(f"Phase 2 \u2014 complete: {text[:200]}")
 
