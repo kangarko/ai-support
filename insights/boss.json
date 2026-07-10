@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "ModelEngine custom attack animations exist since Boss 5.6.6 (#1440), so users who tested earlier wrongly assume they are unsupported. Configure via /boss menu > Settings > ModelEngine > Custom Attack Animations with names matching the blueprint; a random one plays per melee hit, and it only works when Custom Models is also enabled for that Boss.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-10",
+    "issue": 1546
+  },
+  {
+    "topic": "bosses",
+    "insight": "BetterModel is not a drop-in replacement for the ModelEngine hook since it uses its own API, so BetterModel requests are a separate integration feature request (#1546), not a config issue. Also note ModelEngine's Custom_Models is a list where one model is picked randomly on each Boss spawn.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-10",
+    "issue": 1546
   }
 ]
