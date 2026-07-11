@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "spawning",
+    "insight": "Timed spawn rules (LOCATION_PERIOD, PERIOD) measure Delay from the last spawn and only consult the last death when the boss died at or after its next scheduled run, so a kill just before the window expires respawns near-instantly by design; only RESPAWN_AFTER_DEATH guarantees death+Delay. Do not make timed rules always wait death+Delay, that reopens the #1537 fixed-schedule regression (history: #1505, #1506, #1537, #1541).",
+    "related_skill": "spawning",
+    "scope": "project",
+    "date": "2026-07-11",
+    "issue": 1547
+  },
+  {
+    "topic": "spawning",
+    "insight": "On boss death the respawn cooldown is stamped as Last_Death in the spawn rule's YAML, found via the Boss_Spawn_Rule metadata tag on the dying entity. If Last_Death is missing from the rule file right after a kill, the death was not recorded (entity spawned by egg/command/another rule, or rule renamed), and killing rule A's boss never cooldowns an overlapping rule B for the same location.",
+    "related_skill": "spawning",
+    "scope": "project",
+    "date": "2026-07-11",
+    "issue": 1547
   }
 ]
