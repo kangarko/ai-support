@@ -1,7 +1,10 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "\"Ender Dragon takes only 1 damage / ignores group hits\" is vanilla: non-head hits deal damage/4 + min(damage,1), and the 10-tick invulnerability window drops hits weaker than the last one. Boss never modifies incoming boss damage; EntityListener.onDamage only applies DAMAGE_MULTIPLIER when the boss attacks. Fixed via the Hit_Cooldown custom setting (default 20, sets maximumNoDamageTicks on spawn; 0 registers every hit).",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-13",
+    "issue": 1548
   }
 ]
