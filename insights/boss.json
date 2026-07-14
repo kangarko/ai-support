@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Setting a Boss alias to the keyword \"hidden\" (Settings menu \u2192 Alias) hides the nametag above its head, but on builds before the fix for issue #1549 the {boss_alias} variable then resolved to the literal word \"hidden\" in the damage actionbar (Fighting.Health_Bar.Format), boss bar, spawn egg title, and %boss_alias% placeholders. Fixed so it falls back to the Boss name; on older builds tell users to put {boss_name} in the format instead.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-14",
+    "issue": 1549
+  },
+  {
+    "topic": "bosses",
+    "insight": "The fight actionbar shown on damaging a Boss is global-only: Fighting.Health_Bar.Enabled in settings.yml toggles it for all Bosses (no per-Boss toggle exists), and its Format supports the Boss variable set including {boss_name}, {boss_alias} and {damage}. The bar's prefix/suffix and health colors are configured under the same Fighting.Health_Bar section.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-14",
+    "issue": 1549
   }
 ]
