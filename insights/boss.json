@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Boss equipment is one fixed item per slot; the % chance shown in the Equipment menu is the death drop chance, not a spawn chance, so random gear variants need a duplicated Boss (/boss duplicate) with its own spawn rule Chance. One spawn rule spawns EVERY Boss on its list, so each variant must live in a separate rule.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-16",
+    "issue": 1550
+  },
+  {
+    "topic": "bosses",
+    "insight": "Random_Equipment_On_Empty_Slots (default false, toggle in the Equipment menu) controls empty slots only: when off, Boss clears empty equipment slots and strips vanilla's naturally rolled gear; when on, vanilla's random gear is kept. Explains both \"my boss spawned with armor I never set\" and \"how do I get vanilla armor variety\" questions.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-16",
+    "issue": 1550
   }
 ]
