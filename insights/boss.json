@@ -1,7 +1,18 @@
 [
   {
-    "issue": 1484,
-    "pattern": "execute positioned without coordinates in death commands",
-    "lesson": "When users report 'CommandSyntaxException Expected double at position 19: ...ositioned <--[HERE]', the issue is that 'execute positioned' requires explicit XYZ coordinates. In Boss death commands, use {boss_x} {boss_y} {boss_z} which resolve from the boss entity's location and work even without a player killer. Do NOT suggest relative coords (~ ~ ~) for death commands since they run as console when no player is involved. The correct pattern is: execute positioned {boss_x} {boss_y} {boss_z} run <command>"
+    "topic": "bosses",
+    "insight": "Hit Cooldown (Settings menu > Custom Settings) is stored as Custom_Settings.Hit_Cooldown in the boss YAML, measured in ticks (default 20 = 1 second, menu range 0-100); in the menu, left click lowers by 1 and right click raises by 1. It sets the entity's maximum no-damage ticks on spawn, so already-spawned bosses keep their old value until they respawn or the boss is re-saved.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-19",
+    "issue": 1552
+  },
+  {
+    "topic": "bosses",
+    "insight": "On Boss versions before the issue #1552 fix, Custom Settings menu values appear frozen (e.g. clicking Hit Cooldown does nothing) whenever any other boss spawns while the menu is open, because each spawn re-pointed the shared setting state and the menu then read and displayed the wrong boss's values; boolean toggles could even save inverted values. Pre-fix workaround: stop the server and edit Custom_Settings in the boss YAML directly.",
+    "related_skill": "bosses",
+    "scope": "project",
+    "date": "2026-07-19",
+    "issue": 1552
   }
 ]
